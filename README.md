@@ -45,5 +45,6 @@ cmake --build .
 
 ## About
 
-src/game.cpp contains the game-related code
-src/main.cpp contains the GLFW and IMGUI initialization, both can be edited to the heart's desire.
+`src/game.cpp` contains the game-related code
+
+`src/main.cpp` contains the GLFW and IMGUI initialization, both can be edited to the heart's desire.
