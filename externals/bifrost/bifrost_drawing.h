@@ -59,14 +59,17 @@ uniform sampler2D tex;
 out vec4 fragment_color;
 void main()
 {
-    fragment_color = texture(tex, uv);
+    fragment_color = texture(tex, uv) * vec4(color);
 }
 )";
 
 namespace bifrost
 {
     void InitializeDrawing();
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec3 color);
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec4 color);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec3 color);
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec4 color);
 }
 
@@ -81,13 +84,16 @@ namespace bifrost
         texture_shader = bifrost::GenShaderFromSource(basic_vs, textured_fs);
     }
 
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec3 color)
+    {
+        DrawRectangle(camera, origin, size, glm::vec4(color, 1.0f));
+    }
+
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec4 color)
     {
         auto model = glm::translate(glm::mat4(1.0f), glm::vec3(origin.x, origin.y, 0.0f));
         model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
 
-        glDisable(GL_MULTISAMPLE);
-        glDisable(GL_DEPTH_TEST);
         glBindVertexArray(quad_vao);
         
         glUseProgram(basic_shader.id);
@@ -96,8 +102,16 @@ namespace bifrost
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
         glBindVertexArray(0);
-        glEnable(GL_MULTISAMPLE);
-        glEnable(GL_DEPTH_TEST);
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture)
+    {
+        DrawRectangle(camera, origin, size, texture, glm::vec4(1.0f));
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec3 color)
+    {
+        DrawRectangle(camera, origin, size, texture, glm::vec4(color, 1.0f));
     }
 
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec4 color)
@@ -105,7 +119,6 @@ namespace bifrost
         auto model = glm::translate(glm::mat4(1.0f), glm::vec3(origin.x, origin.y, 0.0f));
         model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
 
-        glDisable(GL_MULTISAMPLE);
         glDisable(GL_DEPTH_TEST);
         glBindVertexArray(quad_vao);
         glBindTexture(GL_TEXTURE_2D, texture.id);
@@ -117,10 +130,10 @@ namespace bifrost
         
         glBindTexture(GL_TEXTURE_2D, 0);        
         glBindVertexArray(0);
-        glEnable(GL_MULTISAMPLE);
-        glEnable(GL_DEPTH_TEST);
     }
 }
+
+#undef BIFROST_DRAWING_IMPLEMENTATION
 
 #endif //BIFROST_DRAWING_IMPLEMENTATION
 

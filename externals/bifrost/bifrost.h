@@ -1,7 +1,9 @@
 #ifndef BIFROST_H
 #define BIFROST_H
 
+#define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
+#undef GLAD_GL_IMPLEMENTATION
 
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -166,7 +168,7 @@ namespace bifrost
         return shader;
     }
 
-    unsigned int GenVec4Vao(const float vertices[], unsigned int count)
+    unsigned int GenVec4Vao(const float vertices[], unsigned int vertex_count)
     {
         unsigned int vao;
         unsigned int vbo;
@@ -176,7 +178,7 @@ namespace bifrost
         glBindVertexArray(vao);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * count, vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertex_count * 4, vertices, GL_STATIC_DRAW);
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
@@ -186,7 +188,7 @@ namespace bifrost
         return vao;
     }
 
-    unsigned int GenVec2Vao(const float vertices[], unsigned int count)
+    unsigned int GenVec2Vao(const float vertices[], unsigned int vertex_count)
     {
         unsigned int vao;
         unsigned int vbo;
@@ -196,7 +198,7 @@ namespace bifrost
         glBindVertexArray(vao);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * count, vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertex_count * 2, vertices, GL_STATIC_DRAW);
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
@@ -237,6 +239,8 @@ namespace bifrost
         return camera;
     }
 }
+
+#undef BIFROST_IMPLEMENTATION
 
 #endif // BIFROST_IMPLEMENTATION
 
