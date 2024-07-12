@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bifrost.h"
+#include "bifrost/bifrost.h"
 
 #include <glm/glm.hpp>
 
