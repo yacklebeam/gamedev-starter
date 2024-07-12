@@ -11,8 +11,8 @@
 #define BIFROST_IMPLEMENTATION
 #include "bifrost/bifrost.h"
 
-#define BIFROST_DRAWING_IMPLEMENTATION
-#include "bifrost/bifrost_drawing.h"
+#define BIFROST_FONTS_IMPLEMENTATION
+#include "bifrost/bifrost_fonts.h"
 
 #if _WIN32
 int main(int argc, char* argv[]);
@@ -54,13 +54,11 @@ int main(int argc, char* argv[])
      * 
      * */
 
-    bifrost::InitializeDrawing();
-
-    bifrost::Texture texture = bifrost::LoadTexture("sample-texture.png");
-    bifrost::Texture font_texture = bifrost::LoadTexture("debug-font.png");
+    bifrost::InitializeFonts();
 
     bifrost::Camera2d camera = bifrost::GenOrthogonalCamera2d(glm::vec2(0.0f), glm::vec2(1600.0f, 900.0f));
 
+    glDisable(GL_MULTISAMPLE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -76,19 +74,9 @@ int main(int argc, char* argv[])
         glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        bifrost::DrawRectangle(camera, glm::vec2(100.0f), glm::vec2(200.0f), texture);
-        
-        // Include a color to tint the texture
-        bifrost::DrawRectangle(camera, glm::vec2(300.0f), glm::vec2(200.0f), texture, glm::vec3(1.0f, 0.0f, 0.0f));
-
-        // Color can include an alpha channel
-        // Can also provide a source origin and source size (in pixels)
-        bifrost::DrawRectangle(camera,
-            glm::vec2(500.0f), glm::vec2(70.0f, 120.0f),
-            font_texture,
-            glm::vec2(7, 36), glm::vec2(7, 12),
-            glm::vec3(0.0f, 1.0f, 0.0f)
-        );
+        bifrost::DrawDebugText(camera, glm::vec2(10.0f, 100.0f), 24.0f, glm::vec3(0.0f), "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+        bifrost::DrawDebugText(camera, glm::vec2(10.0f), 24.0f, "abcdefghijklmnopqrstuvwxyz");
+        bifrost::DrawDebugText(camera, glm::vec2(10.0f, 200.0f), 24.0f, "{|} [!] <?> /\\ '\" :; -+=_,.() 1234567890#@%%^* bob@email.com");
 
         glfwSwapBuffers(window);
 

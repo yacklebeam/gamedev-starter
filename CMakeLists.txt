@@ -52,7 +52,7 @@ ENDIF()
 
 ## BUILD EXAMPLES
 
-FOREACH(X basic drawing texture)
+FOREACH(X basic drawing texture bitmap_font)
 
     add_executable(${X}
         examples/${X}.cpp
