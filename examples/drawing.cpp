@@ -54,8 +54,6 @@ int main(int argc, char* argv[])
      * 
      * */
 
-    bifrost::InitializeDrawing();
-
     bifrost::Camera2d camera = bifrost::GenOrthogonalCamera2d(glm::vec2(0.0f), glm::vec2(1600.0f, 900.0f));
 
     glEnable(GL_BLEND);

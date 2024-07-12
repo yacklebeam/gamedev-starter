@@ -11,8 +11,8 @@
 #define BIFROST_IMPLEMENTATION
 #include "bifrost/bifrost.h"
 
-#define BIFROST_FONTS_IMPLEMENTATION
-#include "bifrost/bifrost_fonts.h"
+#define BIFROST_DRAWING_IMPLEMENTATION
+#include "bifrost/bifrost_drawing.h"
 
 #if _WIN32
 int main(int argc, char* argv[]);
@@ -53,8 +53,6 @@ int main(int argc, char* argv[])
      *  Setup OpenGL objects
      * 
      * */
-
-    bifrost::InitializeFonts();
 
     bifrost::Camera2d camera = bifrost::GenOrthogonalCamera2d(glm::vec2(0.0f), glm::vec2(1600.0f, 900.0f));
 

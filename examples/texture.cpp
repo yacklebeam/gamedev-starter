@@ -54,8 +54,6 @@ int main(int argc, char* argv[])
      * 
      * */
 
-    bifrost::InitializeDrawing();
-
     bifrost::Texture texture = bifrost::LoadTexture("sample-texture.png");
     bifrost::Texture font_texture = bifrost::LoadTexture("debug-font.png");
 
