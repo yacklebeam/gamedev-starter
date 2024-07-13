@@ -11,9 +11,6 @@
 #define BIFROST_IMPLEMENTATION
 #include "bifrost/bifrost.h"
 
-#define BIFROST_DRAWING_IMPLEMENTATION
-#include "bifrost/bifrost_drawing.h"
-
 #if _WIN32
 int main(int argc, char* argv[]);
 int WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, PSTR CmdLine, INT CmdShow)
