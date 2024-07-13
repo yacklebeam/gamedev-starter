@@ -52,7 +52,7 @@ ENDIF()
 
 ## BUILD EXAMPLES
 
-FOREACH(X basic drawing texture bitmap_font random)
+FOREACH(X basic drawing texture bitmap_font random stencil_buffer)
 
     add_executable(${X}
         examples/${X}.cpp

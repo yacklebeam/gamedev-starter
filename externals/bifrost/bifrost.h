@@ -544,7 +544,6 @@ namespace bifrost
             origin += glm::vec2(height / 12.0f * char_width, 0.0f);
             i++;
         }
-        glDisable(GL_BLEND);
     }
 
     void Seed(uint32_t s)
