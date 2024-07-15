@@ -74,11 +74,17 @@ namespace bifrost
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture);
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec3 color);
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec4 color);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec3 color);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec4 color);
     
     // Textured with UV
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size);
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec3 color);
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec4 color);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec3 color);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec4 color);
 
     // Text
     void DrawDebugText(Camera2d camera, glm::vec2 origin, float height, const char* format, ...);
@@ -436,18 +442,34 @@ namespace bifrost
 
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture)
     {
-        DrawRectangle(camera, origin, size, texture, glm::vec4(1.0f));
+        DrawRectangle(camera, origin, size, 0.0f, texture, glm::vec4(1.0f));
     }
 
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec3 color)
     {
-        DrawRectangle(camera, origin, size, texture, glm::vec4(color, 1.0f));
+        DrawRectangle(camera, origin, size, 0.0f, texture, glm::vec4(color, 1.0f));
     }
 
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec4 color)
     {
+        DrawRectangle(camera, origin, size, 0.0f, texture, color);
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture)
+    {
+        DrawRectangle(camera, origin, size, angle, texture, glm::vec4(1.0f));
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec3 color)
+    {
+        DrawRectangle(camera, origin, size, angle, texture, glm::vec4(color, 1.0f));
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec4 color)
+    {
         InitializeDrawing();
         auto model = glm::translate(glm::mat4(1.0f), glm::vec3(origin.x, origin.y, 0.0f));
+        model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 0.0f, -1.0f));
         model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
 
         glDisable(GL_DEPTH_TEST);
@@ -465,15 +487,30 @@ namespace bifrost
 
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size)
     {
-        DrawRectangle(camera, origin, size, texture, source_origin, source_size, glm::vec4(1.0f));
+        DrawRectangle(camera, origin, size, 0.0f, texture, source_origin, source_size, glm::vec4(1.0f));
     }
 
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec3 color)
     {
-        DrawRectangle(camera, origin, size, texture, source_origin, source_size, glm::vec4(color, 1.0f));
+        DrawRectangle(camera, origin, size, 0.0f, texture, source_origin, source_size, glm::vec4(color, 1.0f));
     }
 
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec4 color)
+    {
+        DrawRectangle(camera, origin, size, 0.0f, texture, source_origin, source_size, color);
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size)
+    {
+        DrawRectangle(camera, origin, size, angle, texture, source_origin, source_size, glm::vec4(1.0f));
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec3 color)
+    {
+        DrawRectangle(camera, origin, size, angle, texture, source_origin, source_size, glm::vec4(color, 1.0f));
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec4 color)
     {
         InitializeDrawing();
         glm::vec2 uv_start = glm::vec2(source_origin.x / (float)texture.width, source_origin.y / (float)texture.height);
@@ -492,6 +529,7 @@ namespace bifrost
         glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, uvs, GL_DYNAMIC_DRAW);
 
         auto model = glm::translate(glm::mat4(1.0f), glm::vec3(origin.x, origin.y, 0.0f));
+        model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 0.0f, -1.0f));
         model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
 
         glDisable(GL_DEPTH_TEST);

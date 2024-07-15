@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
         glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        bifrost::DrawRectangle(camera, glm::vec2(100.0f), glm::vec2(200.0f), (float)glfwGetTime() * 5.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+        bifrost::DrawRectangle(camera, glm::vec2(100.0f), glm::vec2(200.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
         // Color can include an alpha value
         bifrost::DrawRectangle(camera, glm::vec2(200.0f), glm::vec2(200.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.25f));
