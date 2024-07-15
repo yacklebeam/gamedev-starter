@@ -78,9 +78,9 @@ int main(int argc, char* argv[])
             glfwGetCursorPos(window, &mouse_x, &mouse_y);
             mouse_y = 900.0 - mouse_y; // GLFW has 0 at top, OpenGL has 0 at bottom
 
-            if ((float)mouse_x >= random_position.x && (float)mouse_x <= random_position.x + 100 && (float)mouse_y >= random_position.y && (float)mouse_y <= random_position.y + 100)
+            if ((float)mouse_x >= random_position.x - 50.0f && (float)mouse_x <= random_position.x + 50.0f && (float)mouse_y >= random_position.y - 50.0f && (float)mouse_y <= random_position.y + 50.0f)
             {
-                random_position = glm::vec2(bifrost::RandomFloat() * 1500.0f, bifrost::RandomFloat() * 800.0f);
+                random_position = glm::vec2(bifrost::RandomFloat() * 1500.0f, bifrost::RandomFloat() * 800.0f) + glm::vec2(50.0f);
                 score++;
             }
             clicks++;

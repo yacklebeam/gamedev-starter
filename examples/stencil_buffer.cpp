@@ -138,9 +138,15 @@ int main(int argc, char* argv[])
      *  MAIN LOOP
      * 
      * */
+    double frame_time = 0.0;
+    double last_frame_time = 0.0;
+
     while(!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
+
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(400.0f, 220.0f, 0.0f) + glm::vec3(0.0f, sin(glfwGetTime() * 5.0f) * 100.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(100.0f, 100.0f, 0.0f));
 
         glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -177,6 +183,9 @@ int main(int argc, char* argv[])
 
         glfwSwapBuffers(window);
 
+        double time = glfwGetTime();
+        frame_time = time - last_frame_time;
+        last_frame_time = time;
     }
 
     glfwDestroyWindow(window);

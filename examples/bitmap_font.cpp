@@ -69,9 +69,9 @@ int main(int argc, char* argv[])
         glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        bifrost::DrawDebugText(camera, glm::vec2(10.0f, 100.0f), 36.0f, glm::vec3(0.0f), "THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG");
-        bifrost::DrawDebugText(camera, glm::vec2(10.0f, 10.0f),  36.0f, glm::vec3(0.0f), "sphinxofblackquartzjudgemyvow");
-        bifrost::DrawDebugText(camera, glm::vec2(10.0f, 200.0f), 36.0f, glm::vec3(0.0f), "{|} [!] <?> /\\ '\" :; -+=_,.() 1234567890#@%%^* bob@email.com");
+        bifrost::DrawDebugText(camera, glm::vec2(10.0f, 100.0f), 36.0f, glm::vec3(0.0f), "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG");
+        bifrost::DrawDebugText(camera, glm::vec2(10.0f, 10.0f),  36.0f, glm::vec3(0.0f), "sphinx of black quartz, judge my vow");
+        bifrost::DrawDebugText(camera, glm::vec2(10.0f, 200.0f), 36.0f, glm::vec3(0.0f), "{|} [!] <?> /\\ '\" :; -+=_,.() 1234567890#@%%^* bob@email.com -- 1+2=3!");
 
         glfwSwapBuffers(window);
 

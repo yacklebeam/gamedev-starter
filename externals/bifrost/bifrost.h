@@ -67,6 +67,8 @@ namespace bifrost
 
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec3 color);
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec4 color);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, glm::vec3 color);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, glm::vec4 color);
     
     // Textured
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture);
@@ -119,13 +121,13 @@ static bool initialized = false;
 
 static glm::mat4 screen_space_projection;
 static const float quad_vertices[] = {
-    0.0f, 1.0f,
-    0.0f, 0.0f,
-    1.0f, 0.0f,
+    -0.5f,  0.5f,
+    -0.5f, -0.5f,
+     0.5f, -0.5f,
 
-    1.0f, 0.0f,
-    1.0f, 1.0f,
-    0.0f, 1.0f,
+     0.5f, -0.5f,
+     0.5f,  0.5f,
+    -0.5f,  0.5f,
 };
 static unsigned int quad_vao;
 static unsigned int uv_quad_vao;
@@ -143,7 +145,7 @@ uniform mat4 mvp;
 void main()
 {
     gl_Position = mvp * vec4(position, 0.0, 1.0);
-    texture_coords = position;
+    texture_coords = position + vec2(0.5);
 }
 )";
 
@@ -402,13 +404,24 @@ namespace bifrost
 
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec3 color)
     {
-        DrawRectangle(camera, origin, size, glm::vec4(color, 1.0f));
+        DrawRectangle(camera, origin, size, 0.0f, glm::vec4(color, 1.0f));
     }
 
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec4 color)
     {
+        DrawRectangle(camera, origin, size, 0.0f, color);
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, glm::vec3 color)
+    {
+        DrawRectangle(camera, origin, size, angle, glm::vec4(color, 1.0f));
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, glm::vec4 color)
+    {
         InitializeDrawing();
         auto model = glm::translate(glm::mat4(1.0f), glm::vec3(origin.x, origin.y, 0.0f));
+        model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 0.0f, -1.0f));
         model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
 
         glBindVertexArray(quad_vao);
