@@ -10,7 +10,7 @@
 #include "stb/stb_image.h"
 
 Tilemap::Tilemap(const char* filename, unsigned int tile_count_x, unsigned int tile_count_y, const unsigned int map[], unsigned int map_width, unsigned int map_height)
-{
+{ 
     map_width_ = map_width;
     map_height_ = map_height;
     tile_count_x_ = tile_count_x;

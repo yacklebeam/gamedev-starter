@@ -47,36 +47,7 @@ IF (WIN32)
     target_link_options(game PRIVATE "/SUBSYSTEM:WINDOWS")
 ENDIF()
 
-
-
-
-## BUILD EXAMPLES
-
-FOREACH(X basic drawing texture bitmap_font random stencil_buffer)
-
-    add_executable(${X}
-        examples/${X}.cpp
-    )
-
-    add_dependencies(${X} glfw)
-
-    target_include_directories(${X} PUBLIC externals/glfw/include)
-    target_include_directories(${X} PUBLIC externals/glfw/deps)
-    target_include_directories(${X} PUBLIC externals)
-
-    target_link_libraries(${X} PUBLIC glfw)
-    IF (WIN32)
-        target_link_libraries(${X} PUBLIC opengl32)
-        target_link_libraries(${X} PUBLIC gdi32)
-        target_link_libraries(${X} PUBLIC shell32)
-        target_link_options(${X} PRIVATE "/SUBSYSTEM:WINDOWS")
-    ENDIF()
-
-    add_custom_command(TARGET ${X} PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:${X}>
-    )
-
-ENDFOREACH()
-
-
+add_custom_command(TARGET game PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:game>
+)

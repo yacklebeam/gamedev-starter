@@ -11,6 +11,7 @@
 #include "stb/stb_image.h"
 
 #include <cstdint>
+#include <string>
 
 namespace bifrost
 {
@@ -31,6 +32,8 @@ namespace bifrost
     struct Shader
     {
         unsigned int id;
+        std::string vertex_shader_name{};
+        std::string fragment_shader_name{};
     };
 
     struct Texture
@@ -58,6 +61,7 @@ namespace bifrost
     unsigned int GenVec2Vao(const float vertices[], unsigned int count);
     Texture LoadTexture(const char* filename);
     Camera2d GenOrthogonalCamera2d(glm::vec2 origin, glm::vec2 dimensions);
+    Camera2d GenUICamera(glm::vec2 dimensions);
 
     /*************
      * 
@@ -90,6 +94,8 @@ namespace bifrost
     void DrawDebugText(Camera2d camera, glm::vec2 origin, float height, const char* format, ...);
     void DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec3 color, const char* format, ...);
     void DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, ...);
+    void EnableTextWrap(float width);
+    void DisableTextWrap();
 
     static void InitializeDrawing();
     static void DrawDebugText_Internal(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, va_list args);
@@ -111,9 +117,9 @@ namespace bifrost
      * */
 
     template <typename T> T Lerp(T min, T max, float t);
-    //float Unlerp(float min, float max, float v);
-    //float Remap(float min_in, float max_in, float v, float min_out, float max_out);
-    //float Clamp(float min, float max, float v);
+    template <typename T> float Unlerp(T min, T max, T v);
+    template <typename T> T Remap(T min_in, T max_in, T v, T min_out, T max_out);
+    template <typename T> T Clamp(T min, T max, T v);
 }
 
 #ifdef BIFROST_IMPLEMENTATION
@@ -194,6 +200,7 @@ void main()
 )";
 
 static bifrost::Texture debug_font_texture;
+static float text_wrap_width = 0.0f;
 
 static uint32_t seed = 0;
 
@@ -210,6 +217,7 @@ namespace bifrost
         glBindFramebuffer(GL_FRAMEBUFFER, buffer.id);
 
         glGenTextures(1, &buffer.texture_id);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, buffer.texture_id);
 
         glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
@@ -218,7 +226,6 @@ namespace bifrost
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texture_filter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texture_wrap);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texture_wrap);
-        glBindTexture(GL_TEXTURE_2D, 0);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer.texture_id, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -235,6 +242,8 @@ namespace bifrost
         unsigned int fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
 
         shader.id = glCreateProgram();
+        shader.vertex_shader_name = vertex_shader;
+        shader.fragment_shader_name = fragment_shader;
 
         if (strlen(vertex_shader))
         {
@@ -360,6 +369,7 @@ namespace bifrost
         stbi_set_flip_vertically_on_load(true);
         unsigned char *data = stbi_load(filename, &texture_width, &texture_height, &texture_channel_count, 0); 
         glGenTextures(1, &texture.id);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture.id);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);   
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -382,6 +392,12 @@ namespace bifrost
 
         return camera;
     }
+
+    Camera2d GenUICamera(glm::vec2 dimensions)
+    {
+        return GenOrthogonalCamera2d(glm::vec2(0.0f), dimensions);
+    }
+
 
     static void InitializeDrawing()
     {
@@ -474,6 +490,7 @@ namespace bifrost
 
         glDisable(GL_DEPTH_TEST);
         glBindVertexArray(quad_vao);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture.id);
         
         glUseProgram(texture_shader.id);
@@ -481,7 +498,6 @@ namespace bifrost
         glUniform4fv(glGetUniformLocation(texture_shader.id, "color"), 1, glm::value_ptr(color));
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
-        glBindTexture(GL_TEXTURE_2D, 0);        
         glBindVertexArray(0);
     }
 
@@ -534,6 +550,8 @@ namespace bifrost
 
         glDisable(GL_DEPTH_TEST);
         glBindVertexArray(uv_quad_vao);
+        
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture.id);
         
         glUseProgram(uv_texture_shader.id);
@@ -541,7 +559,6 @@ namespace bifrost
         glUniform4fv(glGetUniformLocation(uv_texture_shader.id, "color"), 1, glm::value_ptr(color));
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
-        glBindTexture(GL_TEXTURE_2D, 0);        
         glBindVertexArray(0);
     }
 
@@ -569,6 +586,16 @@ namespace bifrost
         va_end(args);
     }
 
+    void EnableTextWrap(float width)
+    {
+        text_wrap_width = width;
+    }
+
+    void DisableTextWrap()
+    {
+        text_wrap_width = 0.0f;
+    }
+
     static void DrawDebugText_Internal(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, va_list args)
     {
         InitializeDrawing();
@@ -576,22 +603,68 @@ namespace bifrost
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         char buffer[1000];
-        vsprintf_s(buffer, 1000, format, args);
+        vsnprintf(buffer, 1000, format, args);
+
+        float start_x = origin.x;
 
         int i = 0;
         while(buffer[i] != '\0' && i < 1000)
         {
+            if (buffer[i] == '\n')
+            {
+                origin.x = start_x;
+                origin.y -= height;
+                i++;
+                continue;
+            }
             int index = int(buffer[i]) - 32;
             int x = index % 16;
             int y = index / 16;
-            DrawRectangle(camera, origin, glm::vec2(height / 12.0f * 7.0f, height), debug_font_texture, glm::vec2(x * 7, y * 12), glm::vec2(7, 12), color);
             float char_width = 6.0f;
-            if (buffer[i] == '.' || buffer[i] == '!' || buffer[i] == ',' || buffer[i] == '\'' || buffer[i] == 'l')
-                char_width = 3.0f;
-            else if (buffer[i] == '@')
-                char_width = 7.0f;
-            else if (buffer[i] == 'i' || buffer[i] == 'j')
+            switch (buffer[i])
+            {
+            case '!':
+            case '\'':
+            case ',':
+            case '.':
+            case ':':
+            case ';':
+            case 'i':
+            case 'j':
+            case '|':
                 char_width = 2.0f;
+                break;
+            case 'l':
+                char_width = 3.0f;
+                break;
+            case '"':
+            case '(':
+            case ')':
+            case '?':
+            case 'I':
+            case '^':
+            case '{':
+            case '}':
+                char_width = 4.0f;
+                break;
+            case '/':
+            case '<':
+            case '>':
+            case '[':
+            case '\\':
+            case ']':
+                char_width = 5.0f;
+                break;
+            }
+
+            if (text_wrap_width > 0.0f && (origin.x + height / 12.0f * char_width) - start_x > text_wrap_width)
+            {
+                origin.x = start_x;
+                origin.y -= height;
+            }
+
+            DrawRectangle(camera, origin + glm::vec2(height / 12.0f * 3.0f, 6.0f), glm::vec2(height / 12.0f * 7.0f, height), debug_font_texture, glm::vec2(x * 7, y * 12), glm::vec2(7, 12), color);
+
             origin += glm::vec2(height / 12.0f * char_width, 0.0f);
             i++;
         }
@@ -615,7 +688,31 @@ namespace bifrost
         uint32_t r = Random();
         return (float)r / (float)0x7fffffff;
     }
-    
+
+    template <typename T> T Lerp(T min, T max, float t)
+    {
+        return min + t * (max - min);
+    }
+
+    template <typename T> float Unlerp(T min, T max, T v)
+    {
+        return (v - min) / (max - min);
+    }
+
+    template <typename T> T Remap(T min_in, T max_in, T v, T min_out, T max_out)
+    {
+        float t = Unlerp(min_in, max_in, v);
+        return Lerp(min_out, max_out, t);
+    }
+
+    template <typename T> T Clamp(T min, T max, T v)
+    {
+        if (v < min)
+            v = min;
+        if (v > max)
+            v = max;
+        return v;
+    }
 }
 
 #undef BIFROST_IMPLEMENTATION
