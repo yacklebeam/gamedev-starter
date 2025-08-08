@@ -22,7 +22,7 @@
 namespace
 {
     auto clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
-    bifrost::Camera2d camera{};
+    bifrost::Camera2d ui_camera{};
 }
 
 /***********************************
@@ -36,7 +36,7 @@ void Init(const Context& context)
 {
 
     auto screen_size = bifrost::GetScreenSize(*context.window);
-    camera = bifrost::GenOrthogonalCamera2d(glm::vec2{0.0f}, glm::vec2{screen_size});
+    ui_camera = bifrost::GenUICamera(glm::vec2{screen_size});
 }
 
 /***********************************
@@ -69,7 +69,7 @@ void Render(const Context& context) {
     ImGui::Text("FPS: %.3fs", 1.0 / context.frame_time);
     ImGui::End();
 
-    bifrost::DrawDebugText(camera, glm::vec2{10.0f}, 24.0f, glm::vec3{1.0f}, "%.1fs", context.time);
+    bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, 24.0f, glm::vec3{1.0f}, "%.1fs", context.time);
 }
 
 /***********************************

@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 130");
+    ImGui_ImplOpenGL3_Init("#version 450");
     
     glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);  
 
