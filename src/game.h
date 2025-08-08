@@ -9,7 +9,7 @@ struct Context
     double time;  
 };
 
-void Init(Context *context);
-void Update(Context *context);
-void Render(Context *context);
-void Cleanup(Context *context);
+void Init(const Context& context);
+void Update(const Context& context);
+void Render(const Context& context);
+void Cleanup(const Context& context);

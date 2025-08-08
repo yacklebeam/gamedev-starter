@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
-    GLFWwindow* window = glfwCreateWindow(1600, 900, "BIFROST", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(800, 600, "BIFROST", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
 
     double last_frame_time = 0.0;
 
-    Init(&context);
+    Init(context);
 
     /********************************
      * 
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        Update(&context);
+        Update(context);
 
         /*
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_PassthruCentralNode;
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
             ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
         }
         */
-        Render(&context);
+        Render(context);
 
         //ImGui::End();
         ImGui::Render();
@@ -164,7 +164,7 @@ int main(int argc, char* argv[])
         last_frame_time = context.time;
     }
 
-    Cleanup(&context);
+    Cleanup(context);
 
     glfwDestroyWindow(window);
     glfwTerminate();
