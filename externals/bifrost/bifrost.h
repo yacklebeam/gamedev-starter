@@ -94,9 +94,9 @@ namespace bifrost
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec4 color);
 
     // Text
-    void DrawDebugText(Camera2d camera, glm::vec2 origin, float height, const char* format, ...);
-    void DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec3 color, const char* format, ...);
-    void DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, ...);
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, const char* format, ...);
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec3 color, const char* format, ...);
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, ...);
     void EnableTextWrap(float width);
     void DisableTextWrap();
 
@@ -105,7 +105,7 @@ namespace bifrost
     void DrawLine(bifrost::Camera2d camera, glm::vec2 begin, glm::vec2 end, float width, glm::vec4 color);
 
     static void InitializeDrawing();
-    static void DrawDebugText_Internal(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, va_list args);
+    static glm::vec2 DrawDebugText_Internal(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, va_list args);
 
     /*************
      * 
@@ -849,28 +849,31 @@ namespace bifrost
         glBindVertexArray(0);
     }
 
-    void DrawDebugText(Camera2d camera, glm::vec2 origin, float height, const char* format, ...)
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, const char* format, ...)
     {
         va_list args;
         va_start(args, format);
-        DrawDebugText_Internal(camera, origin, height, glm::vec4(1.0f), format, args);
+        auto new_origin = DrawDebugText_Internal(camera, origin, height, glm::vec4(1.0f), format, args);
         va_end(args);
+        return new_origin;
     }
 
-    void DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec3 color, const char* format, ...)
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec3 color, const char* format, ...)
     {
         va_list args;
         va_start(args, format);
-        DrawDebugText_Internal(camera, origin, height, glm::vec4(color, 1.0f), format, args);
+        auto new_origin = DrawDebugText_Internal(camera, origin, height, glm::vec4(color, 1.0f), format, args);
         va_end(args);
+        return new_origin;
     }
 
-    void DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, ...)
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, ...)
     {
         va_list args;
         va_start(args, format);
-        DrawDebugText_Internal(camera, origin, height, color, format, args);
+        auto new_origin = DrawDebugText_Internal(camera, origin, height, color, format, args);
         va_end(args);
+        return new_origin;
     }
 
     void EnableTextWrap(float width)
@@ -883,7 +886,7 @@ namespace bifrost
         text_wrap_width = 0.0f;
     }
 
-    static void DrawDebugText_Internal(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, va_list args)
+    static glm::vec2 DrawDebugText_Internal(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, va_list args)
     {
         InitializeDrawing();
 
@@ -955,6 +958,8 @@ namespace bifrost
             origin += glm::vec2(height / 12.0f * char_width, 0.0f);
             i++;
         }
+
+        return origin;
     }
 
     void Seed(uint32_t s)

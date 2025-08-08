@@ -69,7 +69,8 @@ void Render(const Context& context) {
     ImGui::Text("FPS: %.3fs", 1.0 / context.frame_time);
     ImGui::End();
 
-    bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, 24.0f, glm::vec3{1.0f}, "%.1fs", context.time);
+    auto x = bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, 24.0f, glm::vec3{1.0f}, "%.1f", context.time);
+    bifrost::DrawDebugText(ui_camera, x, 24.0f, glm::vec3{0.0f}, "s");
 }
 
 /***********************************
