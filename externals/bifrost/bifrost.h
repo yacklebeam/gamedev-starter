@@ -271,23 +271,27 @@ uniform vec2 screen_uv;
 
 void main()
 {
-    float x1 = gl_in[0].gl_Position.x;
+    float aspect_ratio = screen_uv.x / screen_uv.y;
+
+    float x1 = gl_in[0].gl_Position.x * aspect_ratio;
     float y1 = gl_in[0].gl_Position.y;
-    float x2 = gl_in[1].gl_Position.x;
+    float x2 = gl_in[1].gl_Position.x * aspect_ratio;
     float y2 = gl_in[1].gl_Position.y;
 
-    vec2 n = normalize(vec2(y2 - y1, x1 - x2)) * line_width / screen_uv;
+    vec2 n = normalize(vec2(y2 - y1, x1 - x2)) / screen_uv * line_width;
+    vec2 begin = normalize(vec2(x1 - x2, y1 - y2)) / screen_uv * line_width;
+    vec2 end = normalize(vec2(x2 - x1, y2 - y1)) / screen_uv * line_width;
 
-    gl_Position = gl_in[0].gl_Position + vec4(n.x, n.y, 0.0, 0.0);
+    gl_Position = gl_in[0].gl_Position + vec4(n.x + begin.x, n.y + begin.y, 0.0, 0.0);
     EmitVertex();
     
-    gl_Position = gl_in[0].gl_Position + vec4(-n.x, -n.y, 0.0, 0.0);
+    gl_Position = gl_in[0].gl_Position + vec4(-n.x + begin.x, -n.y + begin.y, 0.0, 0.0);
     EmitVertex();
     
-    gl_Position = gl_in[1].gl_Position + vec4(n.x, n.y, 0.0, 0.0);
+    gl_Position = gl_in[1].gl_Position + vec4(n.x + end.x, n.y + end.y, 0.0, 0.0);
     EmitVertex();
     
-    gl_Position = gl_in[1].gl_Position + vec4(-n.x, -n.y, 0.0, 0.0);
+    gl_Position = gl_in[1].gl_Position + vec4(-n.x + end.x, -n.y + end.y, 0.0, 0.0);
     EmitVertex();
 
     EndPrimitive();
