@@ -11,8 +11,6 @@ add_subdirectory(externals/glfw)
 
 add_executable(game
     src/main.cpp
-    src/game.cpp
-    src/game.h
 
     externals/imgui/backends/imgui_impl_glfw.cpp
     externals/imgui/backends/imgui_impl_opengl3.cpp
