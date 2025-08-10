@@ -23,7 +23,6 @@ namespace
     bifrost::Camera2d ui_camera{};
 }
 
-
 #if _WIN32
 int main();
 int WinMain()
@@ -40,21 +39,22 @@ int main()
         return -1;
 
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_FALSE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "BIFROST", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(800, 600, "yakl - gamedev-starter", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
         return -1;
     }
 
+    glfwSetFramebufferSizeCallback(window, GlfwFramebufferSizeCallback);
     glfwMakeContextCurrent(window);
     gladLoadGL(glfwGetProcAddress);
-    glfwSetFramebufferSizeCallback(window, GlfwFramebufferSizeCallback);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -68,8 +68,10 @@ int main()
     glEnable(GL_BLEND);
 
     auto clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
+    auto font_color = glm::vec4{1.0f};
+    int font_size = 48;
     auto screen_size = bifrost::GetScreenSize(*window);
-    ui_camera = bifrost::GenUICamera(glm::vec2{screen_size});
+    ui_camera = bifrost::GenUICamera(screen_size.x, screen_size.y);
 
     /********************************
      * 
@@ -81,6 +83,7 @@ int main()
     while(!glfwWindowShouldClose(window))
     {
 	// UPDATE
+    	double time = glfwGetTime();
         glfwPollEvents();
 	
 	// RENDER
@@ -92,11 +95,26 @@ int main()
 	    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 	    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+	    bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f, ui_camera.dimensions.y - (float)font_size}, (float)font_size, font_color,
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890-=!#%^*()_+[]{};':,.<>/?\\|~");
+	
+
+	    bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, (float)font_size, font_color, "[%.1fs]", time);
+
 	    ImGui::Begin("INFO");
 	    ImGui::ColorEdit3("Background", &clear_color.x);
+	    ImGui::ColorEdit3("Font Color", &font_color.x);
+	    ImGui::DragInt("Font Size", &font_size, 1, 12, 120);
 	    ImGui::Text("OpenGL Version: %s", (char*)glGetString(GL_VERSION));
-	    auto screen_size = bifrost::GetScreenSize(*window);
+	    screen_size = bifrost::GetScreenSize(*window);
 	    ImGui::Text("Resolution: %dx%d", screen_size.x, screen_size.y);
+	    ImGui::Text("ViewPort: %dx%d", (int)ui_camera.dimensions.x, (int)ui_camera.dimensions.y);
+	    if (ImGui::Button("RESET"))
+	    {
+		font_size = 48.0;
+		font_color = glm::vec4{1.0f};
+    		clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
+	    }
 	    ImGui::End();
 	}
 	
@@ -116,7 +134,7 @@ namespace
 void GlfwFramebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
-    ui_camera = bifrost::GenUICamera(glm::vec2{width, height});
+    ui_camera = bifrost::GenUICamera(width, height);
 }
    
 void GlfwErrorCallback(int error, const char* description)

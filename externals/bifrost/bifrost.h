@@ -63,7 +63,7 @@ namespace bifrost
     Texture LoadTexture(const char* filename);
     Texture LoadTexture(const unsigned char* data, const int texture_width, const int texture_height);
     Camera2d GenOrthogonalCamera2d(const glm::vec2 origin, const glm::vec2 dimensions);
-    Camera2d GenUICamera(const glm::vec2 dimensions);
+    Camera2d GenUICamera(const int width, const int height);
     glm::ivec2 GetScreenSize(GLFWwindow& window);
 
     /*************
@@ -637,16 +637,16 @@ namespace bifrost
         return camera;
     }
 
-    Camera2d GenUICamera(const glm::vec2 dimensions)
+    Camera2d GenUICamera(const int width, const int height)
     {
-        return GenOrthogonalCamera2d(glm::vec2(0.0f), dimensions);
+        return GenOrthogonalCamera2d(glm::vec2(0.0f, 0.0f), glm::vec2((float)width, (float)height));
     }
 
     glm::ivec2 GetScreenSize(GLFWwindow& window)
     {
         int width, height;
-        glfwGetWindowSize(&window, &width, &height);
-
+        //glfwGetWindowSize(&window, &width, &height);
+	glfwGetFramebufferSize(&window, &width, &height);
         return glm::ivec2{width, height};
     }
 
@@ -953,7 +953,13 @@ namespace bifrost
                 origin.y -= height;
             }
 
-            DrawRectangle(camera, origin + glm::vec2(height / 12.0f * 3.0f, 6.0f), glm::vec2(height / 12.0f * 7.0f, height), debug_font_texture, glm::vec2(x * 7, y * 12), glm::vec2(7, 12), color);
+            DrawRectangle(camera,
+			    origin + glm::vec2(height / 12.0f * 2.5f, height / 6.0f), 	// dest origin
+			    glm::vec2(height / 12.0f * 7.0f, height), 		// dest size
+			    debug_font_texture,		// texture
+			    glm::vec2(x * 7, y * 12), 	// source origin
+			    glm::vec2(7, 12),		// source size
+			    color);
 
             origin += glm::vec2(height / 12.0f * char_width, 0.0f);
             i++;
