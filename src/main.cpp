@@ -111,7 +111,7 @@ int main()
 	    ImGui::Text("ViewPort: %dx%d", (int)ui_camera.dimensions.x, (int)ui_camera.dimensions.y);
 	    if (ImGui::Button("RESET"))
 	    {
-		font_size = 48.0;
+		font_size = 48;
 		font_color = glm::vec4{1.0f};
     		clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
 	    }
