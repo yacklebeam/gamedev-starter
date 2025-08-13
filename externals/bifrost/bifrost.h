@@ -134,6 +134,7 @@ namespace bifrost
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <vector>
 
 namespace
 {
@@ -235,6 +236,7 @@ namespace
     bifrost::Shader texture_shader;
     bifrost::Shader uv_texture_shader;
     bifrost::Shader line_shader;
+    bifrost::Shader instanced_uv_texture_shader;
 
     const char* basic_vs =
 R"(#version 450 core
@@ -258,6 +260,22 @@ void main()
 {
     gl_Position = mvp * vec4(position, 0.0, 1.0);
     texture_coords = uv;
+}
+)";
+
+    const char* instanced_uv_vs =
+R"(#version 450 core
+layout (location = 0) in vec2 position;
+layout (location = 1) in vec2 uv;
+layout (location = 2) in vec2 offset;
+layout (location = 3) in vec2 uv_offset;
+out vec2 texture_coords;
+uniform mat4 m;
+uniform mat4 vp;
+void main()
+{
+    gl_Position = vp * (m * vec4(position, 0.0, 1.0) + vec4(offset, 0.0, 0.0));
+    texture_coords = uv + uv_offset;
 }
 )";
 
@@ -673,6 +691,7 @@ namespace bifrost
         texture_shader = bifrost::GenShaderFromSource(basic_vs, textured_fs);
         uv_texture_shader = bifrost::GenShaderFromSource(uv_vs, textured_fs);
         line_shader = bifrost::GenShaderFromSource(basic_vs, line_to_quad_gs, basic_fs);
+        instanced_uv_texture_shader = bifrost::GenShaderFromSource(instanced_uv_vs, textured_fs);
 
         debug_font_texture = LoadTexture(debug_font_data, debug_font_width, debug_font_height);
     }
@@ -849,6 +868,62 @@ namespace bifrost
         glBindVertexArray(0);
     }
 
+    void DrawRectangleInstanced(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec4 color, const glm::vec2 offsets[], const int count, const glm::vec2 uv_offsets[], const int count_uvs)
+    {
+        InitializeDrawing();
+        glm::vec2 uv_start = glm::vec2(source_origin.x / (float)texture.width, source_origin.y / (float)texture.height);
+        glm::vec2 uv_end = uv_start + glm::vec2(source_size.x / (float)texture.width, source_size.y / (float)texture.height);
+        // calculate UVs
+        float uvs[] = {
+            uv_start.x, uv_end.y,
+            uv_start.x, uv_start.y,
+            uv_end.x,   uv_start.y,
+
+            uv_end.x,   uv_start.y,
+            uv_end.x,   uv_end.y,
+            uv_start.x, uv_end.y,
+        };
+        glBindBuffer(GL_ARRAY_BUFFER, uv_quad_vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, uvs, GL_DYNAMIC_DRAW);
+
+        unsigned int offset_vbo;
+        glGenBuffers(1, &offset_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, offset_vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * count, &offsets[0], GL_STATIC_DRAW);
+
+        unsigned int uv_offset_vbo;
+        glGenBuffers(1, &uv_offset_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, uv_offset_vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * count_uvs, &uv_offsets[0], GL_STATIC_DRAW);
+
+        auto model = glm::translate(glm::mat4(1.0f), glm::vec3(origin.x, origin.y, 0.0f));
+        model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
+
+        glDisable(GL_DEPTH_TEST);
+        glBindVertexArray(uv_quad_vao);
+
+        glEnableVertexAttribArray(2);
+        glBindBuffer(GL_ARRAY_BUFFER, offset_vbo);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+        glVertexAttribDivisor(2, 1);
+
+        glEnableVertexAttribArray(3);
+        glBindBuffer(GL_ARRAY_BUFFER, uv_offset_vbo);
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+        glVertexAttribDivisor(3, 1);
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture.id);
+        
+        glUseProgram(instanced_uv_texture_shader.id);
+        glUniformMatrix4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "m"), 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "vp"), 1, GL_FALSE, glm::value_ptr(camera.projection));
+        glUniform4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "color"), 1, glm::value_ptr(color));
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, count);
+        
+        glBindVertexArray(0);
+    }
+
     glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, const char* format, ...)
     {
         va_list args;
@@ -890,20 +965,23 @@ namespace bifrost
     {
         InitializeDrawing();
 
+        glm::vec2 offset = glm::vec2(0.0f);
+
+        std::vector<glm::vec2> offsets{};
+        std::vector<glm::vec2> uvs{};
+
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         char buffer[1000];
         vsnprintf(buffer, 1000, format, args);
-
-        float start_x = origin.x;
 
         int i = 0;
         while(buffer[i] != '\0' && i < 1000)
         {
             if (buffer[i] == '\n')
             {
-                origin.x = start_x;
-                origin.y -= height;
+                offset.x = 0.0f;
+                offset.y -= height;
                 i++;
                 continue;
             }
@@ -947,25 +1025,33 @@ namespace bifrost
                 break;
             }
 
-            if (text_wrap_width > 0.0f && (origin.x + height / 12.0f * char_width) - start_x > text_wrap_width)
+            if (text_wrap_width > 0.0f && (offset.x + height / 12.0f * char_width) > text_wrap_width)
             {
-                origin.x = start_x;
-                origin.y -= height;
+                offset.x = 0.0f;
+                offset.y -= height;
             }
 
-            DrawRectangle(camera,
-			    origin + glm::vec2(height / 12.0f * 2.5f, height / 6.0f), 	// dest origin
-			    glm::vec2(height / 12.0f * 7.0f, height), 		// dest size
-			    debug_font_texture,		// texture
-			    glm::vec2(x * 7, y * 12), 	// source origin
-			    glm::vec2(7, 12),		// source size
-			    color);
+            offsets.push_back(offset + glm::vec2(height / 12.0f * 2.5f, height / 6.0f));
+            uvs.push_back(glm::vec2(x * 7.0f / 112.0f, y * 12.0f / 72.0f));
 
-            origin += glm::vec2(height / 12.0f * char_width, 0.0f);
+            offset += glm::vec2(height / 12.0f * char_width, 0.0f);
+
             i++;
         }
 
-        return origin;
+        DrawRectangleInstanced(camera,
+            origin,   // dest origin
+            glm::vec2(height / 12.0f * 7.0f, height),       // dest size
+            debug_font_texture,     // texture
+            glm::vec2(0, 0),   // source origin
+            glm::vec2(7, 12),       // source size
+            color,
+            &offsets[0],
+            (int)offsets.size(),
+            &uvs[0],
+            (int)uvs.size());
+
+        return origin + offset;
     }
 
     void Seed(uint32_t s)

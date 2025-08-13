@@ -82,41 +82,39 @@ int main()
      * */
     while(!glfwWindowShouldClose(window))
     {
-	// UPDATE
+	   // UPDATE
     	double time = glfwGetTime();
         glfwPollEvents();
 	
-	// RENDER
+	   // RENDER
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-	{
-	    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-	    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        // Draw game
+    	glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	    bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f, ui_camera.dimensions.y - (float)font_size}, (float)font_size, font_color,
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890-=!#%^*()_+[]{};':,.<>/?\\|~");
-	
+        bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f, ui_camera.dimensions.y - (float)font_size}, (float)font_size, font_color, "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890-=!#%^*()_+[]{};':,.<>/?\\|~");
+    
+        bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, (float)font_size, font_color, "[%.1fs]", time);
 
-	    bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, (float)font_size, font_color, "[%.1fs]", time);
-
-	    ImGui::Begin("INFO");
-	    ImGui::ColorEdit3("Background", &clear_color.x);
-	    ImGui::ColorEdit3("Font Color", &font_color.x);
-	    ImGui::DragInt("Font Size", &font_size, 1, 12, 120);
-	    ImGui::Text("OpenGL Version: %s", (char*)glGetString(GL_VERSION));
-	    screen_size = bifrost::GetScreenSize(*window);
-	    ImGui::Text("Resolution: %dx%d", screen_size.x, screen_size.y);
-	    ImGui::Text("ViewPort: %dx%d", (int)ui_camera.dimensions.x, (int)ui_camera.dimensions.y);
-	    if (ImGui::Button("RESET"))
-	    {
-		font_size = 48;
-		font_color = glm::vec4{1.0f};
-    		clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
-	    }
-	    ImGui::End();
-	}
+        // Draw info panel
+        ImGui::Begin("INFO");
+        ImGui::ColorEdit3("Background", &clear_color.x);
+        ImGui::ColorEdit3("Font Color", &font_color.x);
+        ImGui::DragInt("Font Size", &font_size, 1, 12, 120);
+        ImGui::Text("OpenGL Version: %s", (char*)glGetString(GL_VERSION));
+        screen_size = bifrost::GetScreenSize(*window);
+        ImGui::Text("Resolution: %dx%d", screen_size.x, screen_size.y);
+        ImGui::Text("ViewPort: %dx%d", (int)ui_camera.dimensions.x, (int)ui_camera.dimensions.y);
+        if (ImGui::Button("RESET"))
+        {
+            font_size = 48;
+            font_color = glm::vec4{1.0f};
+            clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
+        }
+        ImGui::End();
 	
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
