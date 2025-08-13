@@ -99,6 +99,8 @@ int main()
     
         bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, (float)font_size, font_color, "[%.1fs]", time);
 
+        bifrost::DrawRectangle(ui_camera, ui_camera.dimensions / 2.0f, glm::vec2(100.0f, 100.0f), glm::vec3(1.0f));
+
         // Draw info panel
         ImGui::Begin("INFO");
         ImGui::ColorEdit3("Background", &clear_color.x);

@@ -232,6 +232,9 @@ namespace
     unsigned int quad_vao;
     unsigned int uv_quad_vao;
     unsigned int uv_quad_vbo;
+    unsigned int offset_vbo;
+    unsigned int uv_offset_vbo;
+
     bifrost::Shader basic_shader;
     bifrost::Shader texture_shader;
     bifrost::Shader uv_texture_shader;
@@ -685,6 +688,8 @@ namespace bifrost
         glBindBuffer(GL_ARRAY_BUFFER, uv_quad_vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 0, nullptr, GL_DYNAMIC_DRAW);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
+        glGenBuffers(1, &offset_vbo);
+        glGenBuffers(1, &uv_offset_vbo);
         glBindVertexArray(0);
 
         basic_shader = bifrost::GenShaderFromSource(basic_vs, basic_fs);
@@ -868,12 +873,13 @@ namespace bifrost
         glBindVertexArray(0);
     }
 
-    void DrawRectangleInstanced(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec4 color, const glm::vec2 offsets[], const int count, const glm::vec2 uv_offsets[], const int count_uvs)
+    void DrawRectangleInstanced(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec2 source_origin, glm::vec2 source_size, glm::vec4 color, const std::vector<glm::vec2>& offsets, const std::vector<glm::vec2>& uv_offsets)
     {
         InitializeDrawing();
         glm::vec2 uv_start = glm::vec2(source_origin.x / (float)texture.width, source_origin.y / (float)texture.height);
         glm::vec2 uv_end = uv_start + glm::vec2(source_size.x / (float)texture.width, source_size.y / (float)texture.height);
         // calculate UVs
+
         float uvs[] = {
             uv_start.x, uv_end.y,
             uv_start.x, uv_start.y,
@@ -885,16 +891,12 @@ namespace bifrost
         };
         glBindBuffer(GL_ARRAY_BUFFER, uv_quad_vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, uvs, GL_DYNAMIC_DRAW);
-
-        unsigned int offset_vbo;
-        glGenBuffers(1, &offset_vbo);
+    
         glBindBuffer(GL_ARRAY_BUFFER, offset_vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * count, &offsets[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * offsets.size(), &offsets[0], GL_DYNAMIC_DRAW);
 
-        unsigned int uv_offset_vbo;
-        glGenBuffers(1, &uv_offset_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, uv_offset_vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * count_uvs, &uv_offsets[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * uv_offsets.size(), &uv_offsets[0], GL_DYNAMIC_DRAW);
 
         auto model = glm::translate(glm::mat4(1.0f), glm::vec3(origin.x, origin.y, 0.0f));
         model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
@@ -919,7 +921,7 @@ namespace bifrost
         glUniformMatrix4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "m"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "vp"), 1, GL_FALSE, glm::value_ptr(camera.projection));
         glUniform4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "color"), 1, glm::value_ptr(color));
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, count);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, (int)offsets.size());
         
         glBindVertexArray(0);
     }
@@ -1046,10 +1048,8 @@ namespace bifrost
             glm::vec2(0, 0),   // source origin
             glm::vec2(7, 12),       // source size
             color,
-            &offsets[0],
-            (int)offsets.size(),
-            &uvs[0],
-            (int)uvs.size());
+            offsets,
+            uvs);
 
         return origin + offset;
     }
