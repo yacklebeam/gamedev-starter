@@ -16,6 +16,8 @@ add_executable(game
 
     externals/bifrost/bifrost.cpp
     externals/bifrost/bifrost_input.cpp
+    
+    externals/miniaudio/miniaudio.c
 
     externals/imgui/backends/imgui_impl_glfw.cpp
     externals/imgui/backends/imgui_impl_opengl3.cpp
@@ -39,6 +41,10 @@ source_group("imgui" FILES
 source_group("bifrost" FILES 
     externals/bifrost/bifrost.cpp
     externals/bifrost/bifrost_input.cpp
+)
+
+source_group("miniaudio" FILES 
+    externals/miniaudio/miniaudio.c
 )
 
 target_include_directories(game PUBLIC externals/imgui)

@@ -9,8 +9,10 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <imgui.h>
 
-#include "bifrost/bifrost.h"
-#include "bifrost/bifrost_input.h"
+#include <bifrost/bifrost.h>
+#include <bifrost/bifrost_input.h>
+
+#include <miniaudio/miniaudio.h>
 
 #include <stdio.h>
 #include <vector>
@@ -67,13 +69,24 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
+
+    ma_result result;
+    ma_engine engine;
+
+    result = ma_engine_init(NULL, &engine);
+    if (result != MA_SUCCESS) {
+        return result;
+    }
+
+    //ma_engine_play_sound(&engine, "sample-9s.wav", NULL);
+
     auto clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
     auto font_color = glm::vec4{1.0f};
     int font_size = 48;
     auto screen_size = bifrost::GetScreenSize(*window);
     ui_camera = bifrost::GenUICamera(screen_size.x, screen_size.y);
 
-    bifrost::InputHandler input(window);
+    bifrost::InputHandler input{window};
 
     bool show_info_panel = false;
 
@@ -142,6 +155,8 @@ int main()
 
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    ma_engine_uninit(&engine);
 
     return 0;
 }
