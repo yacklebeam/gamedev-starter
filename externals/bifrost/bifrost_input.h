@@ -14,7 +14,6 @@ namespace bifrost
 		InputHandler(GLFWwindow* window) : window_{window} {};
 
 		void PollEvents();
-		void Swap();
 
 		bool IsActionPressed(const std::string& action);
 		bool IsActionJustPressed(const std::string& action);

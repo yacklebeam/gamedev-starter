@@ -7,9 +7,10 @@ namespace bifrost
 {
 	void InputHandler::PollEvents()
 	{
-        glfwPollEvents();
-
+		std::swap(current_state_, previous_state_);
         current_state_.clear();
+
+        glfwPollEvents();
 
         for(auto& [key, action] : keybinds_)
         {
@@ -18,14 +19,9 @@ namespace bifrost
         }
 	}
 
-	void InputHandler::Swap()
-	{
-		std::swap(current_state_, previous_state_);
-	}
-
 	bool InputHandler::IsActionPressed(const std::string& action)
 	{
-		return current_state_.find(action) == current_state_.end();
+		return current_state_.find(action) != current_state_.end();
 	}
 
 	bool InputHandler::IsActionJustPressed(const std::string& action)

@@ -98,7 +98,7 @@ int main()
 
         if (input.IsActionJustPressed("toggle_ui"))
             show_info_panel = !show_info_panel;
-	
+
 	   // RENDER
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -113,7 +113,7 @@ int main()
         bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, (float)font_size, font_color, "[%.1fs]", time);
 
         bifrost::DrawRectangle(ui_camera, ui_camera.dimensions / 2.0f, glm::vec2(100.0f, 100.0f), glm::vec3(1.0f));
-
+        
         // Draw info panel
         if (show_info_panel)
         {
@@ -138,8 +138,6 @@ int main()
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
-
-        input.Swap();
     }
 
     glfwDestroyWindow(window);
