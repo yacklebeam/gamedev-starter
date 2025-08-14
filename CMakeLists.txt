@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
+set (CMAKE_CXX_STANDARD 17)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -13,6 +15,7 @@ add_executable(game
     src/main.cpp
 
     externals/bifrost/bifrost.cpp
+    externals/bifrost/bifrost_input.cpp
 
     externals/imgui/backends/imgui_impl_glfw.cpp
     externals/imgui/backends/imgui_impl_opengl3.cpp
@@ -35,6 +38,7 @@ source_group("imgui" FILES
 
 source_group("bifrost" FILES 
     externals/bifrost/bifrost.cpp
+    externals/bifrost/bifrost_input.cpp
 )
 
 target_include_directories(game PUBLIC externals/imgui)

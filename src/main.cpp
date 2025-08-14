@@ -10,6 +10,7 @@
 #include <imgui.h>
 
 #include "bifrost/bifrost.h"
+#include "bifrost/bifrost_input.h"
 
 #include <stdio.h>
 #include <vector>
@@ -72,6 +73,13 @@ int main()
     auto screen_size = bifrost::GetScreenSize(*window);
     ui_camera = bifrost::GenUICamera(screen_size.x, screen_size.y);
 
+    bifrost::InputHandler input(window);
+
+    bool show_info_panel = false;
+
+    input.AddActionKeyBind(GLFW_KEY_ESCAPE, "quit");
+    input.AddActionKeyBind(GLFW_KEY_Q, "toggle_ui");
+
     /********************************
      * 
      * 
@@ -83,7 +91,13 @@ int main()
     {
 	   // UPDATE
     	double time = glfwGetTime();
-        glfwPollEvents();
+        input.PollEvents();
+
+        if (input.IsActionJustPressed("quit"))
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+
+        if (input.IsActionJustPressed("toggle_ui"))
+            show_info_panel = !show_info_panel;
 	
 	   // RENDER
         ImGui_ImplOpenGL3_NewFrame();
@@ -101,25 +115,31 @@ int main()
         bifrost::DrawRectangle(ui_camera, ui_camera.dimensions / 2.0f, glm::vec2(100.0f, 100.0f), glm::vec3(1.0f));
 
         // Draw info panel
-        ImGui::Begin("INFO");
-        ImGui::ColorEdit3("Background", &clear_color.x);
-        ImGui::ColorEdit3("Font Color", &font_color.x);
-        ImGui::DragInt("Font Size", &font_size, 1, 12, 120);
-        ImGui::Text("OpenGL Version: %s", (char*)glGetString(GL_VERSION));
-        screen_size = bifrost::GetScreenSize(*window);
-        ImGui::Text("Resolution: %dx%d", screen_size.x, screen_size.y);
-        ImGui::Text("ViewPort: %dx%d", (int)ui_camera.dimensions.x, (int)ui_camera.dimensions.y);
-        if (ImGui::Button("RESET"))
+        if (show_info_panel)
         {
-            font_size = 48;
-            font_color = glm::vec4{1.0f};
-            clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
+            ImGui::Begin("INFO");
+            ImGui::ColorEdit3("Background", &clear_color.x);
+            ImGui::ColorEdit3("Font Color", &font_color.x);
+            ImGui::DragInt("Font Size", &font_size, 1, 12, 120);
+            ImGui::Text("OpenGL Version: %s", (char*)glGetString(GL_VERSION));
+            screen_size = bifrost::GetScreenSize(*window);
+            ImGui::Text("Resolution: %dx%d", screen_size.x, screen_size.y);
+            ImGui::Text("ViewPort: %dx%d", (int)ui_camera.dimensions.x, (int)ui_camera.dimensions.y);
+            if (ImGui::Button("RESET"))
+            {
+                font_size = 48;
+                font_color = glm::vec4{1.0f};
+                clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
+            }
+            ImGui::End();  
         }
-        ImGui::End();
+
 	
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
+
+        input.Swap();
     }
 
     glfwDestroyWindow(window);
