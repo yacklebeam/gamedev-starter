@@ -12,6 +12,8 @@ add_subdirectory(externals/glfw)
 add_executable(game
     src/main.cpp
 
+    externals/bifrost/bifrost.cpp
+
     externals/imgui/backends/imgui_impl_glfw.cpp
     externals/imgui/backends/imgui_impl_opengl3.cpp
     externals/imgui/imgui.cpp
@@ -29,6 +31,10 @@ source_group("imgui" FILES
     externals/imgui/imgui_draw.cpp
     externals/imgui/imgui_tables.cpp
     externals/imgui/imgui_widgets.cpp
+)
+
+source_group("bifrost" FILES 
+    externals/bifrost/bifrost.cpp
 )
 
 target_include_directories(game PUBLIC externals/imgui)

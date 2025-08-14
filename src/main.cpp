@@ -9,7 +9,6 @@
 #include <backends/imgui_impl_opengl3.h>
 #include <imgui.h>
 
-#define BIFROST_IMPLEMENTATION
 #include "bifrost/bifrost.h"
 
 #include <stdio.h>
