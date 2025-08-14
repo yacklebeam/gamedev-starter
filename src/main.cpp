@@ -77,8 +77,8 @@ int main()
 
     bool show_info_panel = false;
 
-    input.AddActionKeyBind(GLFW_KEY_ESCAPE, "quit");
-    input.AddActionKeyBind(GLFW_KEY_Q, "toggle_ui");
+    input.AddKeyBind(GLFW_KEY_ESCAPE, "quit");
+    input.AddKeyBind(GLFW_KEY_Q, "toggle_info");
 
     /********************************
      * 
@@ -96,7 +96,7 @@ int main()
         if (input.IsActionJustPressed("quit"))
             glfwSetWindowShouldClose(window, GLFW_TRUE);
 
-        if (input.IsActionJustPressed("toggle_ui"))
+        if (input.IsActionJustPressed("toggle_info"))
             show_info_panel = !show_info_panel;
 
 	   // RENDER
