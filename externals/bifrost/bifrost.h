@@ -100,9 +100,6 @@ namespace bifrost
     void DrawLine(bifrost::Camera2d camera, glm::vec2 begin, glm::vec2 end, float width, glm::vec3 color);
     void DrawLine(bifrost::Camera2d camera, glm::vec2 begin, glm::vec2 end, float width, glm::vec4 color);
 
-    static void InitializeDrawing();
-    static glm::vec2 DrawDebugText_Internal(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const char* format, va_list args);
-
     /*************
      * 
      *  BIFROST RANDOM
