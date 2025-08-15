@@ -78,7 +78,13 @@ int main()
         return result;
     }
 
-    //ma_engine_play_sound(&engine, "sample-9s.wav", NULL);
+    ma_sound sound;
+    result = ma_sound_init_from_file(&engine, "sample-9s.wav", MA_SOUND_FLAG_DECODE, NULL, NULL, &sound);
+    if (result != MA_SUCCESS) {
+        return result;
+    }
+    //ma_sound_set_pitch(&sound, 1.0f);
+    //ma_sound_start(&sound);
 
     auto clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
     auto font_color = glm::vec4{1.0f};
@@ -92,6 +98,7 @@ int main()
 
     input.AddKeyBind(GLFW_KEY_ESCAPE, "quit");
     input.AddKeyBind(GLFW_KEY_Q, "toggle_info");
+    input.AddMouseButtonBind(GLFW_MOUSE_BUTTON_LEFT, "play");
 
     /********************************
      * 
@@ -156,6 +163,7 @@ int main()
     glfwDestroyWindow(window);
     glfwTerminate();
 
+    ma_sound_uninit(&sound);
     ma_engine_uninit(&engine);
 
     return 0;
