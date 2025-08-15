@@ -7,7 +7,7 @@
 
 namespace bifrost
 {
-	void InputHandler::PollEvents()
+	void InputHandler::PollEvents(GLFWwindow* window)
 	{
 		std::swap(current_state_, previous_state_);
         current_state_.clear();
@@ -16,15 +16,35 @@ namespace bifrost
 
         for(auto& [key, action] : keybinds_)
         {
-        	if (glfwGetKey(window_, key) == GLFW_PRESS)
+        	if (glfwGetKey(window, key) == GLFW_PRESS)
         		current_state_[action] = 1.0f;
         }
 
         for(auto& [button, action] : mouse_button_binds_)
         {
-        	if (glfwGetMouseButton(window_, button) == GLFW_PRESS)
+        	if (glfwGetMouseButton(window, button) == GLFW_PRESS)
         		current_state_[action] = 1.0f;
         }
+	
+		double xpos, ypos;
+		glfwGetCursorPos(window, &xpos, &ypos);
+		int width, height;
+		glfwGetFramebufferSize(window, &width, &height);
+
+		ypos = (double)height - ypos;
+
+		MouseAt = glm::vec2((float)xpos, (float)ypos);
+		if (!mouse_pressed_ && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+		{
+			mouse_pressed_ = true;
+			MousePressedAt = glm::vec2((float)xpos, (float)ypos);
+		}
+		if (mouse_pressed_ && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+		{
+			mouse_pressed_ = false;
+			MouseReleasedAt = glm::vec2((float)xpos, (float)ypos);
+		}
+
 	}
 
 	bool InputHandler::IsActionPressed(const std::string& action)
@@ -86,6 +106,21 @@ namespace bifrost
 			result = normalize(result);
 
 		return result;
+	}
+
+	void InputHandler::ClearBinds(const std::string& action)
+	{
+		std::erase_if(keybinds_, [action](const auto& item)
+		{
+			const auto& [_, value] = item;
+			return value == action;
+		});
+
+		std::erase_if(mouse_button_binds_, [action](const auto& item)
+		{
+			const auto& [_, value] = item;
+			return value == action;
+		});
 	}
 
 	void InputHandler::AddKeyBind(unsigned int key, const std::string& action)

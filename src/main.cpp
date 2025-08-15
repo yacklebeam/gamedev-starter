@@ -92,13 +92,15 @@ int main()
     auto screen_size = bifrost::GetScreenSize(*window);
     ui_camera = bifrost::GenUICamera(screen_size.x, screen_size.y);
 
-    bifrost::InputHandler input{window};
+    bifrost::InputHandler input{};
 
     bool show_info_panel = false;
+    bool dragging = false;
 
     input.AddKeyBind(GLFW_KEY_ESCAPE, "quit");
+    input.AddKeyBind(GLFW_KEY_P, "quit");
     input.AddKeyBind(GLFW_KEY_Q, "toggle_info");
-    input.AddMouseButtonBind(GLFW_MOUSE_BUTTON_LEFT, "play");
+    input.AddMouseButtonBind(GLFW_MOUSE_BUTTON_LEFT, "mouse_select");
 
     /********************************
      * 
@@ -111,13 +113,18 @@ int main()
     {
 	   // UPDATE
     	double time = glfwGetTime();
-        input.PollEvents();
+        input.PollEvents(window);
 
         if (input.IsActionJustPressed("quit"))
             glfwSetWindowShouldClose(window, GLFW_TRUE);
 
         if (input.IsActionJustPressed("toggle_info"))
             show_info_panel = !show_info_panel;
+
+	if (input.IsActionJustPressed("mouse_select"))
+		dragging = true;
+	else if (input.IsActionJustReleased("mouse_select"))
+		dragging = false;
 
 	   // RENDER
         ImGui_ImplOpenGL3_NewFrame();
@@ -133,6 +140,13 @@ int main()
         bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, (float)font_size, font_color, "[%.1fs]", time);
 
         bifrost::DrawRectangle(ui_camera, ui_camera.dimensions / 2.0f, glm::vec2(100.0f, 100.0f), glm::vec3(1.0f));
+
+	if (dragging)
+	{
+		glm::vec2 start = input.MousePressedAt;
+		glm::vec2 end = input.MouseAt;
+		bifrost::DrawLine(ui_camera, start, end, 2.0f, glm::vec3(1.0f));
+	}
         
         // Draw info panel
         if (show_info_panel)
