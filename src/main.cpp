@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <format>
 
 namespace
 {
@@ -137,7 +138,7 @@ int main()
 
         bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f, ui_camera.dimensions.y - (float)font_size}, (float)font_size, font_color, "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890-=!#%^*()_+[]{};':,.<>/?\\|~");
     
-        bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, (float)font_size, font_color, "[%.1fs]", time);
+        bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, (float)font_size, font_color, std::format("[{:.1f}s]", time));
 
         bifrost::DrawRectangle(ui_camera, ui_camera.dimensions / 2.0f, glm::vec2(100.0f, 100.0f), glm::vec3(1.0f));
 

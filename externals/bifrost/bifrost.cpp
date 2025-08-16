@@ -925,6 +925,101 @@ namespace bifrost
         return new_origin;
     }
 
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, const std::string_view str)
+    {
+	    return DrawDebugText(camera, origin, height, glm::vec4(1.0f), str);
+    }
+
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec3 color, const std::string_view str)
+    {
+	    return DrawDebugText(camera, origin, height, glm::vec4(color, 1.0f), str);
+    }
+
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const std::string_view str)
+    {
+	    InitializeDrawing();
+
+	    glm::vec2 offset = glm::vec2(0.0f);
+
+	    std::vector<glm::vec2> offsets{};
+	    std::vector<glm::vec2> uvs{};
+
+	    glEnable(GL_BLEND);
+	    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	    for(auto& c : str)
+	    {
+		    if (c == '\n')
+		    {
+			    offset.x = 0.0f;
+			    offset.y -= height;
+			    continue;
+		    }
+		    int index = int(c) - 32;
+		    int x = index % 16;
+		    int y = index / 16;
+		    float char_width = 6.0f;
+		    switch (c)
+		    {
+			    case '!':
+			    case '\'':
+			    case ',':
+			    case '.':
+			    case ':':
+			    case ';':
+			    case 'i':
+			    case 'j':
+			    case '|':
+				    char_width = 2.0f;
+				    break;
+			    case 'l':
+				    char_width = 3.0f;
+				    break;
+			    case '"':
+			    case '(':
+			    case ')':
+			    case '?':
+			    case 'I':
+			    case '^':
+			    case '{':
+			    case '}':
+				    char_width = 4.0f;
+				    break;
+			    case '/':
+			    case '<':
+			    case '>':
+			    case '[':
+			    case '\\':
+			    case ']':
+				    char_width = 5.0f;
+				    break;
+		    }
+
+		    if (text_wrap_width > 0.0f && (offset.x + height / 12.0f * char_width) > text_wrap_width)
+		    {
+			    offset.x = 0.0f;
+			    offset.y -= height;
+		    }
+
+		    offsets.push_back(offset + glm::vec2(height / 12.0f * 2.5f, height / 6.0f));
+		    uvs.push_back(glm::vec2(x * 7.0f / 112.0f, y * 12.0f / 72.0f));
+
+		    offset += glm::vec2(height / 12.0f * char_width, 0.0f);
+	    }
+
+	    DrawRectangleInstanced(camera,
+			    origin,   // dest origin
+			    glm::vec2(height / 12.0f * 7.0f, height),       // dest size
+			    debug_font_texture,     // texture
+			    glm::vec2(0, 0),   // source origin
+			    glm::vec2(7, 12),       // source size
+			    color,
+			    offsets,
+			    uvs);
+
+	    return origin + offset;
+    }
+
     void EnableTextWrap(float width)
     {
         text_wrap_width = width;
