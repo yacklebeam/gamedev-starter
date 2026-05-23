@@ -925,17 +925,17 @@ namespace bifrost
         return new_origin;
     }
 
-    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, const std::string_view str)
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, std::string_view str)
     {
 	    return DrawDebugText(camera, origin, height, glm::vec4(1.0f), str);
     }
 
-    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec3 color, const std::string_view str)
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec3 color, std::string_view str)
     {
 	    return DrawDebugText(camera, origin, height, glm::vec4(color, 1.0f), str);
     }
 
-    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, const std::string_view str)
+    glm::vec2 DrawDebugText(Camera2d camera, glm::vec2 origin, float height, glm::vec4 color, std::string_view str)
     {
 	    InitializeDrawing();
 
