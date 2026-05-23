@@ -103,6 +103,11 @@ int main()
     input.AddKeyBind(GLFW_KEY_Q, "toggle_info");
     input.AddMouseButtonBind(GLFW_MOUSE_BUTTON_LEFT, "mouse_select");
 
+    input.BindOnPressed("quit", [&window]() { glfwSetWindowShouldClose(window, GLFW_TRUE); });
+    input.BindOnPressed("toggle_info", [&show_info_panel]() { show_info_panel = !show_info_panel; });
+    input.BindOnPressed("mouse_select", [&dragging]() { dragging = true; });
+    input.BindOnReleased("mouse_select", [&dragging]() { dragging = false; });
+
     /********************************
      * 
      * 
@@ -116,16 +121,6 @@ int main()
     	double time = glfwGetTime();
         input.PollEvents(window);
 
-        if (input.IsActionJustPressed("quit"))
-            glfwSetWindowShouldClose(window, GLFW_TRUE);
-
-        if (input.IsActionJustPressed("toggle_info"))
-            show_info_panel = !show_info_panel;
-
-	if (input.IsActionJustPressed("mouse_select"))
-		dragging = true;
-	else if (input.IsActionJustReleased("mouse_select"))
-		dragging = false;
 
 	   // RENDER
         ImGui_ImplOpenGL3_NewFrame();

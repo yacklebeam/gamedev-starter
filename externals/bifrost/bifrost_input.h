@@ -3,9 +3,11 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
+#include <functional>
 #include <unordered_map>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace bifrost
 {
@@ -25,6 +27,10 @@ namespace bifrost
 		void AddKeyBind(unsigned int key, const std::string& action);
 		void AddMouseButtonBind(unsigned int button, const std::string& action);
 
+		void BindOnPressed(const std::string& action, std::function<void()> callback);
+		void BindOnHeld(const std::string& action, std::function<void()> callback);
+		void BindOnReleased(const std::string& action, std::function<void()> callback);
+
 		glm::vec2 MouseAt{};
 		glm::vec2 MousePressedAt{};
 		glm::vec2 MouseReleasedAt{};
@@ -33,6 +39,9 @@ namespace bifrost
 		std::unordered_map<std::string, float> previous_state_{};
 		std::map<unsigned int, std::string> keybinds_{};
 		std::map<unsigned int, std::string> mouse_button_binds_{};
+		std::unordered_map<std::string, std::vector<std::function<void()>>> on_just_pressed_callbacks_{};
+		std::unordered_map<std::string, std::vector<std::function<void()>>> on_held_callbacks_{};
+		std::unordered_map<std::string, std::vector<std::function<void()>>> on_just_released_callbacks_{};
 		bool mouse_pressed_;
 	};
 }

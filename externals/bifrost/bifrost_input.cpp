@@ -25,6 +25,18 @@ namespace bifrost
         	if (glfwGetMouseButton(window, button) == GLFW_PRESS)
         		current_state_[action] = 1.0f;
         }
+
+        for (auto& [action, callbacks] : on_just_pressed_callbacks_)
+        	if (IsActionJustPressed(action))
+        		for (auto& cb : callbacks) cb();
+
+        for (auto& [action, callbacks] : on_held_callbacks_)
+        	if (IsActionPressed(action))
+        		for (auto& cb : callbacks) cb();
+
+        for (auto& [action, callbacks] : on_just_released_callbacks_)
+        	if (IsActionJustReleased(action))
+        		for (auto& cb : callbacks) cb();
 	
 		double xpos, ypos;
 		glfwGetCursorPos(window, &xpos, &ypos);
@@ -131,5 +143,20 @@ namespace bifrost
 	void InputHandler::AddMouseButtonBind(unsigned int button, const std::string& action)
 	{
 		mouse_button_binds_[button] = action;
+	}
+
+	void InputHandler::BindOnPressed(const std::string& action, std::function<void()> callback)
+	{
+		on_just_pressed_callbacks_[action].push_back(std::move(callback));
+	}
+
+	void InputHandler::BindOnHeld(const std::string& action, std::function<void()> callback)
+	{
+		on_held_callbacks_[action].push_back(std::move(callback));
+	}
+
+	void InputHandler::BindOnReleased(const std::string& action, std::function<void()> callback)
+	{
+		on_just_released_callbacks_[action].push_back(std::move(callback));
 	}
 }
