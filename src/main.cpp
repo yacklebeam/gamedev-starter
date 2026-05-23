@@ -137,12 +137,12 @@ int main()
 
         bifrost::DrawRectangle(ui_camera, ui_camera.dimensions / 2.0f, glm::vec2(100.0f, 100.0f), glm::vec3(1.0f));
 
-	if (dragging)
-	{
-		glm::vec2 start = input.MousePressedAt;
-		glm::vec2 end = input.MouseAt;
-		bifrost::DrawLine(ui_camera, start, end, 2.0f, glm::vec3(1.0f));
-	}
+        if (dragging)
+        {
+            glm::vec2 start = input.MousePressedAt;
+            glm::vec2 end = input.MouseAt;
+            bifrost::DrawLine(ui_camera, start, end, 2.0f, glm::vec3(1.0f));
+        }
         
         // Draw info panel
         if (show_info_panel)
