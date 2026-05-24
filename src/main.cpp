@@ -12,6 +12,7 @@
 #include <bifrost/bifrost.h>
 #include <bifrost/bifrost_input.h>
 #include <bifrost/bifrost_dungeon.h>
+#include <bifrost/bifrost_collision.h>
 
 #include <miniaudio/miniaudio.h>
 
@@ -121,6 +122,8 @@ int main()
     meta_input.BindOnPressed("mouse_select", [&dragging]() { dragging = true; });
     meta_input.BindOnReleased("mouse_select", [&dragging]() { dragging = false; });
 
+    auto rect_hitbox = bifrost::GenRectHitbox({0.0f, 0.0f}, {80.0f, 80.0f});
+    glm::vec2 rect_pos = ui_camera.dimensions / 2.0f;
 
     /********************************
      * 
@@ -147,9 +150,15 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f, ui_camera.dimensions.y - (float)font_size}, (float)font_size, font_color, "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890-=!#%^*()_+[]{};':,.<>/?\\|~");
-    
 
-        bifrost::DrawRectangle(ui_camera, ui_camera.dimensions / 2.0f, glm::vec2(80.0f, 80.0f), dungeon_texture, glm::vec2(x * 17.f, y * 17.f), glm::vec2(16.f));
+        bifrost::LineIntersectionResult line_hit{};
+        if (dragging)
+            line_hit = bifrost::GetLineIntersection(rect_hitbox, rect_pos, 0.0f, input.MousePressedAt, input.MouseAt);
+
+        bool mouse_over = bifrost::ContainsPoint(rect_hitbox, rect_pos, 0.0f, meta_input.MouseAt);
+        auto rect_color = (mouse_over || line_hit.hit) ? glm::vec4(1.0f, 0.0f, 0.0f, 1.0f) : glm::vec4(1.0f);
+        bifrost::DrawRectangle(ui_camera, rect_pos, glm::vec2(80.0f, 80.0f), dungeon_texture, glm::vec2(x * 17.f, y * 17.f), glm::vec2(16.f), rect_color);
+        bifrost::DrawHitbox(ui_camera, rect_hitbox, rect_pos, 0.f, glm::vec3(0.f, 1.f, 0.f));
 
         auto tex_size = glm::vec2(12.f * 17.f, 11.f * 17.f);
         bifrost::DrawRectangle(ui_camera, tex_size / 2.f, tex_size, dungeon_texture);
