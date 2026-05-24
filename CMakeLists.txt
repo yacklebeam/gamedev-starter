@@ -69,3 +69,48 @@ add_custom_command(TARGET game PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:game>
 )
+
+# Tools
+set(IMGUI_SOURCES
+    externals/imgui/backends/imgui_impl_glfw.cpp
+    externals/imgui/backends/imgui_impl_opengl3.cpp
+    externals/imgui/imgui.cpp
+    externals/imgui/imgui_draw.cpp
+    externals/imgui/imgui_tables.cpp
+    externals/imgui/imgui_widgets.cpp
+)
+
+set(BIFROST_SOURCES
+    externals/bifrost/bifrost.cpp
+    externals/bifrost/bifrost_input.cpp
+    externals/bifrost/bifrost_dungeon.cpp
+)
+
+set(TOOL_INCLUDES
+    externals/imgui
+    externals/glfw/include
+    externals/glfw/deps
+    externals
+)
+
+add_executable(dump_texture tools/dump_texture.cpp)
+target_include_directories(dump_texture PUBLIC externals)
+
+add_executable(level_editor
+    tools/level_editor.cpp
+    ${IMGUI_SOURCES}
+    ${BIFROST_SOURCES}
+)
+add_dependencies(level_editor glfw)
+target_include_directories(level_editor PUBLIC ${TOOL_INCLUDES})
+target_link_libraries(level_editor PUBLIC glfw)
+IF (WIN32)
+    target_link_libraries(level_editor PUBLIC opengl32)
+    target_link_libraries(level_editor PUBLIC gdi32)
+    target_link_libraries(level_editor PUBLIC shell32)
+ENDIF()
+
+add_custom_command(TARGET level_editor PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:level_editor>
+)
