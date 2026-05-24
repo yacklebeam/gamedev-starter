@@ -11,6 +11,7 @@
 
 #include <bifrost/bifrost.h>
 #include <bifrost/bifrost_input.h>
+#include <bifrost/bifrost_dungeon.h>
 
 #include <miniaudio/miniaudio.h>
 
@@ -92,21 +93,32 @@ int main()
     int font_size = 48;
     auto screen_size = bifrost::GetScreenSize(*window);
     ui_camera = bifrost::GenUICamera(screen_size.x, screen_size.y);
+    auto dungeon_texture = bifrost::GetDungeonTexture();
 
     bifrost::InputHandler input{};
 
     bool show_info_panel = false;
     bool dragging = false;
+    int x = 0;
+    int y = 0;
 
     input.AddKeyBind(GLFW_KEY_ESCAPE, "quit");
     input.AddKeyBind(GLFW_KEY_P, "quit");
     input.AddKeyBind(GLFW_KEY_Q, "toggle_info");
+    input.AddKeyBind(GLFW_KEY_RIGHT, "right");
+    input.AddKeyBind(GLFW_KEY_LEFT, "left");
+    input.AddKeyBind(GLFW_KEY_UP, "up");
+    input.AddKeyBind(GLFW_KEY_DOWN, "down");
     input.AddMouseButtonBind(GLFW_MOUSE_BUTTON_LEFT, "mouse_select");
 
     input.BindOnPressed("quit", [&window]() { glfwSetWindowShouldClose(window, GLFW_TRUE); });
     input.BindOnPressed("toggle_info", [&show_info_panel]() { show_info_panel = !show_info_panel; });
     input.BindOnPressed("mouse_select", [&dragging]() { dragging = true; });
     input.BindOnReleased("mouse_select", [&dragging]() { dragging = false; });
+    input.BindOnPressed("left", [&x]() { x--; if (x < 0) x += 12; });
+    input.BindOnPressed("right", [&x]() { x++; x %= 12; });
+    input.BindOnPressed("down", [&y]() { y--; if (y < 0) y += 11; });
+    input.BindOnPressed("up", [&y]() { y++; y %= 11; });
 
     /********************************
      * 
@@ -133,9 +145,20 @@ int main()
 
         bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f, ui_camera.dimensions.y - (float)font_size}, (float)font_size, font_color, "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890-=!#%^*()_+[]{};':,.<>/?\\|~");
     
-        bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, (float)font_size, font_color, std::format("[{:.1f}s]", time));
 
-        bifrost::DrawRectangle(ui_camera, ui_camera.dimensions / 2.0f, glm::vec2(100.0f, 100.0f), glm::vec3(1.0f));
+        bifrost::DrawRectangle(ui_camera, ui_camera.dimensions / 2.0f, glm::vec2(80.0f, 80.0f), dungeon_texture, glm::vec2(x * 17.f, y * 17.f), glm::vec2(16.f));
+
+        auto tex_size = glm::vec2(12.f * 17.f, 11.f * 17.f);
+        bifrost::DrawRectangle(ui_camera, tex_size / 2.f, tex_size, dungeon_texture);
+
+        auto box_start = glm::vec2(x, y) * 17.f;
+        auto box_end = box_start + glm::vec2(16.f);
+        bifrost::DrawLine(ui_camera, glm::vec2(box_start.x, box_start.y), glm::vec2(box_start.x, box_end.y), 2.0f, glm::vec3(1.f, 0.f, 0.f));
+        bifrost::DrawLine(ui_camera, glm::vec2(box_start.x, box_end.y), glm::vec2(box_end.x, box_end.y), 2.0f, glm::vec3(1.f, 0.f, 0.f));
+        bifrost::DrawLine(ui_camera, glm::vec2(box_end.x, box_end.y), glm::vec2(box_end.x, box_start.y), 2.0f, glm::vec3(1.f, 0.f, 0.f));
+        bifrost::DrawLine(ui_camera, glm::vec2(box_end.x, box_start.y), glm::vec2(box_start.x, box_start.y), 2.0f, glm::vec3(1.f, 0.f, 0.f));
+
+        //bifrost::DrawDebugText(ui_camera, glm::vec2{10.0f}, (float)font_size, font_color, std::format("[{:.1f}s]", time));
 
         if (dragging)
         {

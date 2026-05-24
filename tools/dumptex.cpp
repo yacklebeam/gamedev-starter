@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
         printf("\t");
         for (int j = 0; j < texture_width; ++j)
         {
-            printf("'%u', '%u', '%u', '%u', ", data[index], data[index + 1], data[index + 2], data[index + 3]);
+            printf("%u, %u, %u, %u, ", data[index], data[index + 1], data[index + 2], data[index + 3]);
             index += 4;
         }
         printf("\n");
