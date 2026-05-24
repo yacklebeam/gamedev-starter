@@ -58,6 +58,7 @@ namespace bifrost
     unsigned int GenVec2Vao(const float vertices[], const unsigned int count);
     Texture LoadTexture(const char* filename);
     Texture LoadTexture(const unsigned char* data, const int texture_width, const int texture_height);
+    Texture LoadTexture(const unsigned char* png_data, const int png_size);
     Camera2d GenOrthogonalCamera2d(const glm::vec2 origin, const glm::vec2 dimensions);
     Camera2d GenUICamera(const int width, const int height);
     glm::ivec2 GetScreenSize(GLFWwindow& window);
