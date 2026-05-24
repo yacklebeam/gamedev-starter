@@ -170,6 +170,10 @@ int main()
         // Draw info panel
         if (show_info_panel)
         {
+            input.DisableBinds("left");
+            input.DisableBinds("right");
+            input.DisableBinds("up");
+            input.DisableBinds("down");
             ImGui::Begin("INFO");
             ImGui::ColorEdit3("Background", &clear_color.x);
             ImGui::ColorEdit3("Font Color", &font_color.x);
@@ -185,6 +189,13 @@ int main()
                 clear_color = glm::vec4{0.45f, 0.55f, 0.60f, 1.00f};
             }
             ImGui::End();  
+        }
+        else
+        {
+            input.EnableBinds("left");
+            input.EnableBinds("right");
+            input.EnableBinds("up");
+            input.EnableBinds("down");
         }
 
 	

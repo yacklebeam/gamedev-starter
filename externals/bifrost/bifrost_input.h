@@ -31,6 +31,9 @@ namespace bifrost
 		void BindOnHeld(const std::string& action, std::function<void()> callback);
 		void BindOnReleased(const std::string& action, std::function<void()> callback);
 
+		void DisableBinds(const std::string& action);
+		void EnableBinds(const std::string& action);
+
 		glm::vec2 MouseAt{};
 		glm::vec2 MousePressedAt{};
 		glm::vec2 MouseReleasedAt{};
@@ -39,6 +42,8 @@ namespace bifrost
 		std::unordered_map<std::string, float> previous_state_{};
 		std::map<unsigned int, std::string> keybinds_{};
 		std::map<unsigned int, std::string> mouse_button_binds_{};
+		std::map<unsigned int, std::string> disabled_keybinds_{};
+		std::map<unsigned int, std::string> disabled_mouse_button_binds_{};
 		std::unordered_map<std::string, std::vector<std::function<void()>>> on_just_pressed_callbacks_{};
 		std::unordered_map<std::string, std::vector<std::function<void()>>> on_held_callbacks_{};
 		std::unordered_map<std::string, std::vector<std::function<void()>>> on_just_released_callbacks_{};

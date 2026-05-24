@@ -159,4 +159,52 @@ namespace bifrost
 	{
 		on_just_released_callbacks_[action].push_back(std::move(callback));
 	}
+
+	void InputHandler::DisableBinds(const std::string& action)
+	{
+		for (auto it = keybinds_.begin(); it != keybinds_.end(); )
+		{
+			if (it->second == action)
+			{
+				disabled_keybinds_.insert(disabled_keybinds_.end(), *it);
+				it = keybinds_.erase(it);
+			}
+			else ++it;
+		}
+
+		for (auto it = mouse_button_binds_.begin(); it != mouse_button_binds_.end(); )
+		{
+			if (it->second == action)
+			{
+				disabled_mouse_button_binds_.insert(disabled_mouse_button_binds_.end(), *it);
+				it = mouse_button_binds_.erase(it);
+			}
+			else ++it;
+		}
+
+		current_state_.erase(action);
+	}
+
+	void InputHandler::EnableBinds(const std::string& action)
+	{
+		for (auto it = disabled_keybinds_.begin(); it != disabled_keybinds_.end(); )
+		{
+			if (it->second == action)
+			{
+				keybinds_.insert(keybinds_.end(), *it);
+				it = disabled_keybinds_.erase(it);
+			}
+			else ++it;
+		}
+
+		for (auto it = disabled_mouse_button_binds_.begin(); it != disabled_mouse_button_binds_.end(); )
+		{
+			if (it->second == action)
+			{
+				mouse_button_binds_.insert(mouse_button_binds_.end(), *it);
+				it = disabled_mouse_button_binds_.erase(it);
+			}
+			else ++it;
+		}
+	}
 }
