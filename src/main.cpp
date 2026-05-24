@@ -96,29 +96,31 @@ int main()
     auto dungeon_texture = bifrost::GetDungeonTexture();
 
     bifrost::InputHandler input{};
+    bifrost::InputHandler meta_input{};
 
     bool show_info_panel = false;
     bool dragging = false;
     int x = 0;
     int y = 0;
 
-    input.AddKeyBind(GLFW_KEY_ESCAPE, "quit");
-    input.AddKeyBind(GLFW_KEY_P, "quit");
-    input.AddKeyBind(GLFW_KEY_Q, "toggle_info");
     input.AddKeyBind(GLFW_KEY_RIGHT, "right");
     input.AddKeyBind(GLFW_KEY_LEFT, "left");
     input.AddKeyBind(GLFW_KEY_UP, "up");
     input.AddKeyBind(GLFW_KEY_DOWN, "down");
-    input.AddMouseButtonBind(GLFW_MOUSE_BUTTON_LEFT, "mouse_select");
-
-    input.BindOnPressed("quit", [&window]() { glfwSetWindowShouldClose(window, GLFW_TRUE); });
-    input.BindOnPressed("toggle_info", [&show_info_panel]() { show_info_panel = !show_info_panel; });
-    input.BindOnPressed("mouse_select", [&dragging]() { dragging = true; });
-    input.BindOnReleased("mouse_select", [&dragging]() { dragging = false; });
     input.BindOnPressed("left", [&x]() { x--; if (x < 0) x += 12; });
     input.BindOnPressed("right", [&x]() { x++; x %= 12; });
     input.BindOnPressed("down", [&y]() { y--; if (y < 0) y += 11; });
     input.BindOnPressed("up", [&y]() { y++; y %= 11; });
+
+    meta_input.AddKeyBind(GLFW_KEY_ESCAPE, "quit");
+    meta_input.AddKeyBind(GLFW_KEY_P, "quit");
+    meta_input.AddKeyBind(GLFW_KEY_Q, "toggle_info");
+    meta_input.AddMouseButtonBind(GLFW_MOUSE_BUTTON_LEFT, "mouse_select");
+    meta_input.BindOnPressed("quit", [&window]() { glfwSetWindowShouldClose(window, GLFW_TRUE); });
+    meta_input.BindOnPressed("toggle_info", [&show_info_panel]() { show_info_panel = !show_info_panel; });
+    meta_input.BindOnPressed("mouse_select", [&dragging]() { dragging = true; });
+    meta_input.BindOnReleased("mouse_select", [&dragging]() { dragging = false; });
+
 
     /********************************
      * 
@@ -131,8 +133,9 @@ int main()
     {
 	   // UPDATE
     	double time = glfwGetTime();
-        input.PollEvents(window);
-
+        if (!show_info_panel)
+            input.PollEvents(window);
+        meta_input.PollEvents(window);
 
 	   // RENDER
         ImGui_ImplOpenGL3_NewFrame();
@@ -170,14 +173,10 @@ int main()
         // Draw info panel
         if (show_info_panel)
         {
-            input.DisableBinds("left");
-            input.DisableBinds("right");
-            input.DisableBinds("up");
-            input.DisableBinds("down");
             ImGui::Begin("INFO");
             ImGui::ColorEdit3("Background", &clear_color.x);
             ImGui::ColorEdit3("Font Color", &font_color.x);
-            ImGui::DragInt("Font Size", &font_size, 1, 12, 120);
+            ImGui::DragInt("Font Size", &font_size, 12, 12, 120);
             ImGui::Text("OpenGL Version: %s", (char*)glGetString(GL_VERSION));
             screen_size = bifrost::GetScreenSize(*window);
             ImGui::Text("Resolution: %dx%d", screen_size.x, screen_size.y);
@@ -190,14 +189,6 @@ int main()
             }
             ImGui::End();  
         }
-        else
-        {
-            input.EnableBinds("left");
-            input.EnableBinds("right");
-            input.EnableBinds("up");
-            input.EnableBinds("down");
-        }
-
 	
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
