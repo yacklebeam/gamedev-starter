@@ -33,7 +33,9 @@ static constexpr int LAYER_OBJECTS  = 2;
 static const char*   LAYER_SECTION[]  = { "ground", "walls", "objects" };
 static const char*   LAYER_LABEL[]    = { "Ground", "Walls", "Objects" };
 
-enum class Tool { Paint, Eyedropper };
+enum class Tool { Paint, Eyedropper, Hitbox };
+
+struct HitboxRect { float x, y, w, h; }; // tile-space floats
 
 struct TileCell
 {
@@ -45,7 +47,8 @@ struct LevelData
 {
     int width  = 20;
     int height = 15;
-    std::vector<TileCell> tiles[LAYER_COUNT]; // 0=ground, 1=walls, 2=objects
+    std::vector<TileCell>    tiles[LAYER_COUNT]; // 0=ground, 1=walls, 2=objects
+    std::vector<HitboxRect>  hitboxes;
 
     void resize(int w, int h)
     {
@@ -83,6 +86,8 @@ static void PushUndo(const LevelData& level)
 //   ...
 //   [objects]
 //   ...
+//   [hitboxes]
+//   x,y,w,h  (tile-space floats, one per line)
 //
 // Old single-section files (no header) load into ground; walls/objects default empty.
 
@@ -105,6 +110,9 @@ static bool SaveLevel(const LevelData& level, const char* path)
             f << "\n";
         }
     }
+    f << "[hitboxes]\n";
+    for (const auto& hb : level.hitboxes)
+        f << hb.x << "," << hb.y << "," << hb.w << "," << hb.h << "\n";
     return true;
 }
 
@@ -149,6 +157,18 @@ static bool LoadLevel(LevelData& level, const char* path)
         bool dims_set = false;
         do
         {
+            if (line == "[hitboxes]")
+            {
+                std::string hb_line;
+                while (std::getline(f, hb_line) && !hb_line.empty())
+                {
+                    float x = 0, y = 0, w = 0, h = 0;
+                    if (sscanf(hb_line.c_str(), "%f,%f,%f,%f", &x, &y, &w, &h) == 4 && w > 0 && h > 0)
+                        level.hitboxes.push_back({x, y, w, h});
+                }
+                break;
+            }
+
             int layer_idx = -1;
             for (int l = 0; l < LAYER_COUNT; ++l)
             {
@@ -249,6 +269,7 @@ int main()
     int       brush_rotation  = 0; // 0-3 quarter-turns clockwise; R key cycles
     int       active_layer    = LAYER_GROUND;
     bool      layer_visible[LAYER_COUNT] = { true, true, true };
+    bool      show_grid       = true;
     float     zoom            = 1.0f;
     glm::vec2 pan_offset      = {0.0f, 0.0f};
 
@@ -257,10 +278,40 @@ int main()
     glm::vec2 pan_mouse_start{};
     glm::vec2 pan_offset_start{};
 
+    // Hover preview tile (updated each frame during interaction, used during render)
+    glm::ivec2 hover_preview_tile = {-1, -1};
+
     // Per-stroke undo: separate tracking for left (paint) and right (erase)
     bool      stroke_l = false;
     bool      stroke_r = false;
     LevelData stroke_snapshot;
+
+    // Hitbox editor state
+    enum class HbDragMode { None, Draw, Move, ResizeNW, ResizeNE, ResizeSE, ResizeSW, ResizeN, ResizeS, ResizeE, ResizeW };
+    int        selected_hitbox      = -1;
+    HbDragMode hb_drag_mode         = HbDragMode::None;
+    glm::vec2  hb_draw_start        = {};
+    HitboxRect hb_in_progress       = {};
+    glm::vec2  hb_drag_start_mouse  = {};
+    HitboxRect hb_drag_start_rect   = {};
+    glm::vec2  hb_fixed_corner      = {};
+    LevelData  hb_stroke_snapshot   = {};
+    bool       show_hitboxes        = true;
+    bool       snap_hitboxes        = true;
+
+    static constexpr float HANDLE_HALF = 5.0f;
+
+    auto MouseToTileF = [&](glm::vec2 mouse_in_vp) -> glm::vec2
+    {
+        float tile_px = TILE_DISPLAY * zoom;
+        return { (mouse_in_vp.x - pan_offset.x) / tile_px,
+                 (mouse_in_vp.y - pan_offset.y) / tile_px };
+    };
+
+    auto SnapVal = [&](float v) -> float
+    {
+        return snap_hitboxes ? std::round(v) : v;
+    };
 
     // Resize UI state
     int resize_w = level.width;
@@ -336,11 +387,22 @@ int main()
             }
             if (ImGui::IsKeyPressed(ImGuiKey_R, false))
                 brush_rotation = (brush_rotation + 1) % 4;
+            if (ImGui::IsKeyPressed(ImGuiKey_G, false))
+                show_grid = !show_grid;
 
             // 1/2/3 to switch active layer
             if (ImGui::IsKeyPressed(ImGuiKey_1, false)) active_layer = LAYER_GROUND;
             if (ImGui::IsKeyPressed(ImGuiKey_2, false)) active_layer = LAYER_WALLS;
             if (ImGui::IsKeyPressed(ImGuiKey_3, false)) active_layer = LAYER_OBJECTS;
+
+            // Delete selected hitbox
+            if (active_tool == Tool::Hitbox && selected_hitbox >= 0 &&
+                ImGui::IsKeyPressed(ImGuiKey_Delete, false))
+            {
+                PushUndo(level);
+                level.hitboxes.erase(level.hitboxes.begin() + selected_hitbox);
+                selected_hitbox = -1;
+            }
         }
 
         // ImGui uses display coordinates (from glfwGetWindowSize), not framebuffer pixels.
@@ -403,20 +465,35 @@ int main()
                 }
             }
 
-            // Grid lines
-            for (int tx = 0; tx <= level.width; ++tx)
+            // Hover preview
+            if (hover_preview_tile.x >= 0 && hover_preview_tile.y >= 0)
             {
-                float x = pan_offset.x + tx * tile_px;
-                float y0 = (float)fb_h - pan_offset.y;
-                float y1 = (float)fb_h - (pan_offset.y + level.height * tile_px);
-                bifrost::DrawLine(cam, {x, y0}, {x, y1}, 1.0f, glm::vec3(0.35f));
+                float cx = pan_offset.x + hover_preview_tile.x * tile_px + tile_px * 0.5f;
+                float cy = (float)fb_h - (pan_offset.y + hover_preview_tile.y * tile_px + tile_px * 0.5f);
+                glm::vec2 src = TileSourceOrigin(selected_tile);
+                bifrost::DrawRectangle(cam, {cx, cy}, {tile_px, tile_px},
+                    brush_rotation * 90.0f,
+                    dungeon_texture, src, glm::vec2(TILE_SRC_SIZE),
+                    glm::vec4(1.0f, 1.0f, 1.0f, 0.5f));
             }
-            for (int ty = 0; ty <= level.height; ++ty)
+
+            // Grid lines
+            if (show_grid)
             {
-                float y  = (float)fb_h - (pan_offset.y + ty * tile_px);
-                float x0 = pan_offset.x;
-                float x1 = pan_offset.x + level.width * tile_px;
-                bifrost::DrawLine(cam, {x0, y}, {x1, y}, 1.0f, glm::vec3(0.35f));
+                for (int tx = 0; tx <= level.width; ++tx)
+                {
+                    float x = pan_offset.x + tx * tile_px;
+                    float y0 = (float)fb_h - pan_offset.y;
+                    float y1 = (float)fb_h - (pan_offset.y + level.height * tile_px);
+                    bifrost::DrawLine(cam, {x, y0}, {x, y1}, 1.0f, glm::vec3(0.35f));
+                }
+                for (int ty = 0; ty <= level.height; ++ty)
+                {
+                    float y  = (float)fb_h - (pan_offset.y + ty * tile_px);
+                    float x0 = pan_offset.x;
+                    float x1 = pan_offset.x + level.width * tile_px;
+                    bifrost::DrawLine(cam, {x0, y}, {x1, y}, 1.0f, glm::vec3(0.35f));
+                }
             }
         }
 
@@ -441,6 +518,16 @@ int main()
         bool hovered = ImGui::IsItemHovered();
         ImVec2 mouse_abs = io.MousePos;
         glm::vec2 mouse_in_vp = { mouse_abs.x - img_pos.x, mouse_abs.y - img_pos.y };
+
+        // Update hover preview state for next frame's render pass
+        {
+            glm::ivec2 t = MouseToTile(mouse_in_vp);
+            bool show = hovered && active_tool == Tool::Paint && layer_visible[active_layer] &&
+                        !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
+                        !ImGui::IsMouseDown(ImGuiMouseButton_Right) &&
+                        t.x >= 0 && t.x < level.width && t.y >= 0 && t.y < level.height;
+            hover_preview_tile = show ? t : glm::ivec2{-1, -1};
+        }
 
         // Scroll to zoom
         if (hovered && io.MouseWheel != 0.0f)
@@ -494,7 +581,7 @@ int main()
                     }
                 }
             }
-            else
+            else if (active_tool == Tool::Paint)
             {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && in_bounds && can_paint)
                 {
@@ -510,19 +597,203 @@ int main()
                 }
             }
 
-            // Right click: always erase (on active layer)
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && in_bounds && can_paint)
+            // Right click: always erase (on active layer, tile modes only)
+            if (active_tool != Tool::Hitbox)
             {
-                stroke_snapshot = level;
-                stroke_r        = true;
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && in_bounds && can_paint)
+                {
+                    stroke_snapshot = level;
+                    stroke_r        = true;
+                }
+                if (ImGui::IsMouseDown(ImGuiMouseButton_Right) && in_bounds && can_paint)
+                    level.at(active_layer, tile.x, tile.y) = { -1, 0 };
+                if (stroke_r && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+                {
+                    PushUndo(stroke_snapshot);
+                    stroke_r = false;
+                }
             }
-            if (ImGui::IsMouseDown(ImGuiMouseButton_Right) && in_bounds && can_paint)
-                level.at(active_layer, tile.x, tile.y) = { -1, 0 };
-            if (stroke_r && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+
+            // Hitbox editing
+            if (active_tool == Tool::Hitbox)
             {
-                PushUndo(stroke_snapshot);
-                stroke_r = false;
+                float tile_px      = TILE_DISPLAY * zoom;
+                glm::vec2 mouse_tf = MouseToTileF(mouse_in_vp);
+
+                if (hb_drag_mode == HbDragMode::None)
+                {
+                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                    {
+                        bool handled = false;
+
+                        // Check corner handles of selected hitbox first
+                        if (selected_hitbox >= 0 && selected_hitbox < (int)level.hitboxes.size())
+                        {
+                            const auto& hb = level.hitboxes[selected_hitbox];
+                            float vl = pan_offset.x + hb.x * tile_px;
+                            float vt = pan_offset.y + hb.y * tile_px;
+                            float vr = pan_offset.x + (hb.x + hb.w) * tile_px;
+                            float vb = pan_offset.y + (hb.y + hb.h) * tile_px;
+
+                            auto NearHandle = [&](float cx, float cy) {
+                                return std::abs(mouse_in_vp.x - cx) <= HANDLE_HALF &&
+                                       std::abs(mouse_in_vp.y - cy) <= HANDLE_HALF;
+                            };
+
+                            float vmx = (vl + vr) * 0.5f, vmy = (vt + vb) * 0.5f;
+
+                            if      (NearHandle(vl,  vt )) { hb_drag_mode = HbDragMode::ResizeNW; hb_fixed_corner = {hb.x + hb.w, hb.y + hb.h}; handled = true; }
+                            else if (NearHandle(vr,  vt )) { hb_drag_mode = HbDragMode::ResizeNE; hb_fixed_corner = {hb.x,        hb.y + hb.h}; handled = true; }
+                            else if (NearHandle(vr,  vb )) { hb_drag_mode = HbDragMode::ResizeSE; hb_fixed_corner = {hb.x,        hb.y       }; handled = true; }
+                            else if (NearHandle(vl,  vb )) { hb_drag_mode = HbDragMode::ResizeSW; hb_fixed_corner = {hb.x + hb.w, hb.y       }; handled = true; }
+                            else if (NearHandle(vmx, vt )) { hb_drag_mode = HbDragMode::ResizeN;  hb_fixed_corner = {0,           hb.y + hb.h}; handled = true; }
+                            else if (NearHandle(vmx, vb )) { hb_drag_mode = HbDragMode::ResizeS;  hb_fixed_corner = {0,           hb.y       }; handled = true; }
+                            else if (NearHandle(vr,  vmy)) { hb_drag_mode = HbDragMode::ResizeE;  hb_fixed_corner = {hb.x,        0          }; handled = true; }
+                            else if (NearHandle(vl,  vmy)) { hb_drag_mode = HbDragMode::ResizeW;  hb_fixed_corner = {hb.x + hb.w, 0          }; handled = true; }
+
+                            if (handled) hb_stroke_snapshot = level;
+                        }
+
+                        if (!handled)
+                        {
+                            // Check if click is inside an existing hitbox (select + move)
+                            int hit_idx = -1;
+                            for (int i = (int)level.hitboxes.size() - 1; i >= 0; --i)
+                            {
+                                const auto& hb = level.hitboxes[i];
+                                if (mouse_tf.x >= hb.x && mouse_tf.x <= hb.x + hb.w &&
+                                    mouse_tf.y >= hb.y && mouse_tf.y <= hb.y + hb.h)
+                                { hit_idx = i; break; }
+                            }
+
+                            if (hit_idx >= 0)
+                            {
+                                selected_hitbox    = hit_idx;
+                                hb_drag_mode       = HbDragMode::Move;
+                                hb_drag_start_mouse = mouse_tf;
+                                hb_drag_start_rect  = level.hitboxes[hit_idx];
+                                hb_stroke_snapshot  = level;
+                            }
+                            else
+                            {
+                                // Start drawing a new hitbox
+                                selected_hitbox = -1;
+                                hb_drag_mode    = HbDragMode::Draw;
+                                hb_draw_start   = { SnapVal(mouse_tf.x), SnapVal(mouse_tf.y) };
+                                hb_in_progress  = { hb_draw_start.x, hb_draw_start.y, 0.f, 0.f };
+                                hb_stroke_snapshot = level;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+                    {
+                        if (hb_drag_mode == HbDragMode::Draw)
+                        {
+                            float ex = SnapVal(mouse_tf.x), ey = SnapVal(mouse_tf.y);
+                            hb_in_progress = {
+                                std::min(hb_draw_start.x, ex), std::min(hb_draw_start.y, ey),
+                                std::abs(ex - hb_draw_start.x), std::abs(ey - hb_draw_start.y)
+                            };
+                        }
+                        else if (hb_drag_mode == HbDragMode::Move)
+                        {
+                            glm::vec2 delta = mouse_tf - hb_drag_start_mouse;
+                            level.hitboxes[selected_hitbox].x = SnapVal(hb_drag_start_rect.x + delta.x);
+                            level.hitboxes[selected_hitbox].y = SnapVal(hb_drag_start_rect.y + delta.y);
+                        }
+                        else if (hb_drag_mode == HbDragMode::ResizeN || hb_drag_mode == HbDragMode::ResizeS)
+                        {
+                            float my = SnapVal(mouse_tf.y), fy = hb_fixed_corner.y;
+                            auto& hb = level.hitboxes[selected_hitbox];
+                            hb.y = std::min(my, fy);
+                            hb.h = std::abs(my - fy);
+                        }
+                        else if (hb_drag_mode == HbDragMode::ResizeE || hb_drag_mode == HbDragMode::ResizeW)
+                        {
+                            float mx = SnapVal(mouse_tf.x), fx = hb_fixed_corner.x;
+                            auto& hb = level.hitboxes[selected_hitbox];
+                            hb.x = std::min(mx, fx);
+                            hb.w = std::abs(mx - fx);
+                        }
+                        else // corner resize
+                        {
+                            float mx = SnapVal(mouse_tf.x), my = SnapVal(mouse_tf.y);
+                            float fx = hb_fixed_corner.x,   fy = hb_fixed_corner.y;
+                            level.hitboxes[selected_hitbox] = {
+                                std::min(fx, mx), std::min(fy, my),
+                                std::abs(mx - fx), std::abs(my - fy)
+                            };
+                        }
+                    }
+                    else // released
+                    {
+                        if (hb_drag_mode == HbDragMode::Draw)
+                        {
+                            if (hb_in_progress.w > 0.01f && hb_in_progress.h > 0.01f)
+                            {
+                                level.hitboxes.push_back(hb_in_progress);
+                                selected_hitbox = (int)level.hitboxes.size() - 1;
+                                PushUndo(hb_stroke_snapshot);
+                            }
+                            hb_in_progress = {};
+                        }
+                        else
+                        {
+                            PushUndo(hb_stroke_snapshot);
+                        }
+                        hb_drag_mode = HbDragMode::None;
+                    }
+                }
             }
+        }
+
+        // ---- Hitbox overlay (ImGui draw list) ----
+        if (show_hitboxes)
+        {
+            float tile_px   = TILE_DISPLAY * zoom;
+            ImDrawList* dl  = ImGui::GetWindowDrawList();
+
+            auto DrawHbRect = [&](const HitboxRect& hb, bool selected, bool in_prog)
+            {
+                float sl = img_pos.x + pan_offset.x + hb.x * tile_px;
+                float st = img_pos.y + pan_offset.y + hb.y * tile_px;
+                float sr = sl + hb.w * tile_px;
+                float sb = st + hb.h * tile_px;
+
+                ImU32 fill = in_prog  ? IM_COL32(80, 200, 255,  50)
+                           : selected ? IM_COL32(255, 140,  0,  60)
+                                      : IM_COL32(255, 200,  0,  35);
+                ImU32 line = in_prog  ? IM_COL32( 80, 200, 255, 220)
+                           : selected ? IM_COL32(255, 140,  0, 255)
+                                      : IM_COL32(255, 200,  0, 180);
+
+                dl->AddRectFilled({sl, st}, {sr, sb}, fill);
+                dl->AddRect({sl, st}, {sr, sb}, line, 0.f, 0, 2.f);
+
+                // Corner and edge handles for selected hitbox in hitbox mode
+                if (selected && active_tool == Tool::Hitbox)
+                {
+                    float hs = HANDLE_HALF;
+                    float mx = (sl + sr) * 0.5f, my = (st + sb) * 0.5f;
+                    auto Handle = [&](float cx, float cy) {
+                        dl->AddRectFilled({cx - hs, cy - hs}, {cx + hs, cy + hs}, IM_COL32(255, 255, 255, 240));
+                        dl->AddRect(     {cx - hs, cy - hs}, {cx + hs, cy + hs}, IM_COL32(0,   0,   0,   200));
+                    };
+                    // corners
+                    Handle(sl, st); Handle(sr, st); Handle(sr, sb); Handle(sl, sb);
+                    // edges
+                    Handle(mx, st); Handle(mx, sb); Handle(sr, my); Handle(sl, my);
+                }
+            };
+
+            for (int i = 0; i < (int)level.hitboxes.size(); ++i)
+                DrawHbRect(level.hitboxes[i], i == selected_hitbox, false);
+
+            if (hb_drag_mode == HbDragMode::Draw && hb_in_progress.w > 0 && hb_in_progress.h > 0)
+                DrawHbRect(hb_in_progress, false, true);
         }
 
         ImGui::End(); // viewport
@@ -532,29 +803,62 @@ int main()
         ImGui::SetNextWindowSize({PANEL_W, viewport_h});
         ImGui::Begin("##panel", nullptr,
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-            ImGuiWindowFlags_NoMove     | ImGuiWindowFlags_NoBringToFrontOnFocus);
+            ImGuiWindowFlags_NoMove     | ImGuiWindowFlags_NoBringToFrontOnFocus |
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-        // Tool buttons (left=paint, right=erase always; eyedropper overrides left click)
-        ImGui::Text("LMB: Paint  RMB: Erase");
+        // Tool buttons
+        ImGui::Text("Tool");
         if (ImGui::RadioButton("Paint",    active_tool == Tool::Paint))      active_tool = Tool::Paint;
         ImGui::SameLine();
         if (ImGui::RadioButton("Eyedrop",  active_tool == Tool::Eyedropper)) active_tool = Tool::Eyedropper;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Hitbox",   active_tool == Tool::Hitbox))     active_tool = Tool::Hitbox;
 
         ImGui::Separator();
 
-        // Layer selector — stacked to mirror render order: objects on top, ground on bottom
-        // Eye checkbox | radio button, displayed top-to-bottom as: Objects / Walls / Ground
-        ImGui::Text("Layer  (1=Ground 2=Walls 3=Objects)");
-        for (int display_i = LAYER_COUNT - 1; display_i >= 0; --display_i)
+        if (active_tool == Tool::Hitbox)
         {
-            ImGui::Checkbox(("##vis" + std::to_string(display_i)).c_str(), &layer_visible[display_i]);
-            ImGui::SameLine();
-            if (ImGui::RadioButton(LAYER_LABEL[display_i], active_layer == display_i))
-                active_layer = display_i;
-            if (!layer_visible[display_i])
+            ImGui::Text("Hitboxes");
+            ImGui::Checkbox("Snap to grid##hbsnap", &snap_hitboxes);
+            ImGui::Text("Draw: drag  |  Select: click");
+            ImGui::Text("Move: drag body  |  Resize: corners");
+            ImGui::Text("Delete: Del key");
+            if (selected_hitbox >= 0 && selected_hitbox < (int)level.hitboxes.size())
             {
+                const auto& hb = level.hitboxes[selected_hitbox];
+                ImGui::Separator();
+                ImGui::Text("Selected #%d", selected_hitbox);
+                ImGui::Text("x=%.2f  y=%.2f", hb.x, hb.y);
+                ImGui::Text("w=%.2f  h=%.2f", hb.w, hb.h);
+                if (ImGui::Button("Delete Selected"))
+                {
+                    PushUndo(level);
+                    level.hitboxes.erase(level.hitboxes.begin() + selected_hitbox);
+                    selected_hitbox = -1;
+                }
+            }
+            else
+            {
+                ImGui::TextDisabled("No hitbox selected");
+            }
+            ImGui::Text("Total hitboxes: %d", (int)level.hitboxes.size());
+        }
+        else
+        {
+            // Layer selector — stacked to mirror render order: objects on top, ground on bottom
+            // Eye checkbox | radio button, displayed top-to-bottom as: Objects / Walls / Ground
+            ImGui::Text("Layer  (1=Ground 2=Walls 3=Objects)");
+            for (int display_i = LAYER_COUNT - 1; display_i >= 0; --display_i)
+            {
+                ImGui::Checkbox(("##vis" + std::to_string(display_i)).c_str(), &layer_visible[display_i]);
                 ImGui::SameLine();
-                ImGui::TextDisabled("(hidden)");
+                if (ImGui::RadioButton(LAYER_LABEL[display_i], active_layer == display_i))
+                    active_layer = display_i;
+                if (!layer_visible[display_i])
+                {
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("(hidden)");
+                }
             }
         }
 
@@ -687,6 +991,12 @@ int main()
         }
         if (status_msg[0])
             ImGui::TextUnformatted(status_msg);
+
+        ImGui::Separator();
+
+        // View options
+        ImGui::Checkbox("Grid (G)", &show_grid);
+        ImGui::Checkbox("Hitboxes", &show_hitboxes);
 
         ImGui::Separator();
 

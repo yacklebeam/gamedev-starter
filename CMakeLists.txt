@@ -13,6 +13,7 @@ add_subdirectory(externals/glfw)
 
 add_executable(game
     src/main.cpp
+    src/level.cpp
 
     externals/bifrost/bifrost.cpp
     externals/bifrost/bifrost_input.cpp
@@ -92,9 +93,6 @@ set(TOOL_INCLUDES
     externals/glfw/deps
     externals
 )
-
-add_executable(dump_texture tools/dump_texture.cpp)
-target_include_directories(dump_texture PUBLIC externals)
 
 add_executable(level_editor
     tools/level_editor.cpp

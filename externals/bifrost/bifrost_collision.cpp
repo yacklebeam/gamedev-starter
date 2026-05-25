@@ -110,8 +110,15 @@ CollisionResult GetCollision(Hitbox a, glm::vec2 pos_a, float angle_a, Hitbox b,
     if (!test_axes(axes_a) || !test_axes(axes_b))
         return {false, {}};
 
-    // Ensure penetration vector points from b toward a (pushes a out of b)
-    if (glm::dot(pos_a - pos_b, mtv) < 0.0f)
+    // Ensure penetration vector points from b toward a (pushes a out of b).
+    // Use vertex centroids rather than raw positions so that hitbox origin offsets
+    // are accounted for — raw pos comparison breaks for non-centered hitboxes.
+    glm::vec2 centroid_a{}, centroid_b{};
+    for (const auto& v : verts_a) centroid_a += v;
+    for (const auto& v : verts_b) centroid_b += v;
+    centroid_a /= static_cast<float>(verts_a.size());
+    centroid_b /= static_cast<float>(verts_b.size());
+    if (glm::dot(centroid_a - centroid_b, mtv) < 0.0f)
         mtv = -mtv;
 
     return {true, mtv * min_overlap};
