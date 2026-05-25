@@ -78,8 +78,7 @@ int main()
         player_pos += move * speed * dt;
 
         // Resolve overlap: push the player out by the penetration vector
-        auto result = bifrost::GetCollision(player_hitbox, player_pos, 0.0f,
-                                            wall_hitbox,   wall_pos,   0.0f);
+        auto result = bifrost::GetCollision(player_hitbox, player_pos, 0.0f, wall_hitbox, wall_pos, 0.0f);
         if (result.hit)
             player_pos += result.penetration;
 
@@ -88,21 +87,15 @@ int main()
 
         // Draw wall
         bifrost::DrawRectangle(camera, wall_pos, wall_size, glm::vec4(0.5f, 0.5f, 0.55f, 1.0f));
-        bifrost::DrawHitbox(camera, wall_hitbox, wall_pos, 0.0f, glm::vec3(0.4f, 0.4f, 0.5f));
+        bifrost::DrawHitbox(camera, wall_hitbox, wall_pos, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
 
         // Draw player, tinted red while colliding
-        auto player_color = result.hit
-            ? glm::vec4(1.0f, 0.3f, 0.3f, 1.0f)
-            : glm::vec4(0.2f, 0.6f, 1.0f, 1.0f);
+        auto player_color = result.hit ? glm::vec3(1.0f, 0.3f, 0.3f) : glm::vec3(0.2f, 0.6f, 1.0f);
         bifrost::DrawRectangle(camera, player_pos, player_size, player_color);
         bifrost::DrawHitbox(camera, player_hitbox, player_pos, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
 
-        bifrost::DrawDebugText(camera, glm::vec2(10.0f, camera.dimensions.y - 32.0f), 24.0f,
-                               "collision example -- WASD to move");
-        bifrost::DrawDebugText(camera, glm::vec2(10.0f, 10.0f), 24.0f,
-                               glm::vec3(0.8f, 0.8f, 0.8f),
-                               result.hit ? "HIT  penetration: (%.1f, %.1f)" : "no collision",
-                               result.penetration.x, result.penetration.y);
+        bifrost::DrawDebugText(camera, glm::vec2(10.0f, camera.dimensions.y - 32.0f), 24.0f, "collision example -- WASD to move");
+        bifrost::DrawDebugText(camera, glm::vec2(10.0f, 10.0f), 24.0f, glm::vec3(0.8f, 0.8f, 0.8f), result.hit ? "HIT penetration: (%.1f, %.1f)" : "no collision", result.penetration.x, result.penetration.y);
 
         glfwSwapBuffers(window);
     }
