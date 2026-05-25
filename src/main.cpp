@@ -122,7 +122,7 @@ int main()
     meta_input.BindOnPressed("mouse_select", [&dragging]() { dragging = true; });
     meta_input.BindOnReleased("mouse_select", [&dragging]() { dragging = false; });
 
-    auto rect_hitbox = bifrost::GenRectHitbox({0.0f, 0.0f}, {80.0f, 80.0f});
+    auto rect_hitbox = bifrost::GenRectHitbox({80.0f, 80.0f});
     glm::vec2 rect_pos = ui_camera.dimensions / 2.0f;
 
     /********************************

@@ -56,12 +56,12 @@ int main()
     // Player: moves with WASD, pushed out of the wall on overlap
     glm::vec2 player_size = glm::vec2(40.0f);
     glm::vec2 player_pos  = camera.dimensions / 2.0f - glm::vec2(80.0f, 0.0f);
-    auto player_hitbox    = bifrost::GenRectHitbox({0.0f, 0.0f}, player_size);
+    auto player_hitbox    = bifrost::GenRectHitbox(player_size);
 
     // Static wall in the center of the screen
     glm::vec2 wall_size = glm::vec2(30.0f, 160.0f);
     glm::vec2 wall_pos  = camera.dimensions / 2.0f;
-    auto wall_hitbox    = bifrost::GenRectHitbox({0.0f, 0.0f}, wall_size);
+    auto wall_hitbox    = bifrost::GenRectHitbox(wall_size);
 
     const float speed = 220.0f;
     float last_time = glfwGetTime();

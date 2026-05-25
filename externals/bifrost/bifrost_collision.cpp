@@ -13,9 +13,8 @@ std::vector<glm::vec2> GetWorldVertices(const bifrost::Hitbox& h, glm::vec2 pos,
     float s = std::sin(angle);
     for (const auto& offset : h.offsets)
     {
-        glm::vec2 local = h.origin + offset;
-        verts.push_back(pos + glm::vec2(local.x * c - local.y * s,
-                                        local.x * s + local.y * c));
+        verts.push_back(pos + glm::vec2(offset.x * c - offset.y * s,
+                                        offset.x * s + offset.y * c));
     }
     return verts;
 }
@@ -64,15 +63,13 @@ float SegmentIntersectT(glm::vec2 p1, glm::vec2 p2, glm::vec2 q1, glm::vec2 q2)
 namespace bifrost
 {
 
-Hitbox GenRectHitbox(glm::vec2 origin, glm::vec2 size)
+Hitbox GenRectHitbox(glm::vec2 size)
 {
     glm::vec2 half = size * 0.5f;
-    return Hitbox{origin, {
-        {-half.x, -half.y},
-        { half.x, -half.y},
-        { half.x,  half.y},
-        {-half.x,  half.y}
-    }};
+    return Hitbox{{{-half.x, -half.y},
+                   { half.x, -half.y},
+                   { half.x,  half.y},
+                   {-half.x,  half.y}}};
 }
 
 CollisionResult GetCollision(Hitbox a, glm::vec2 pos_a, float angle_a, Hitbox b, glm::vec2 pos_b, float angle_b)
