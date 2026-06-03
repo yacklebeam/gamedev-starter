@@ -46,10 +46,10 @@ namespace
 R"(#version 450 core
 layout (location = 0) in vec2 position;
 out vec2 texture_coords;
-uniform mat4 mvp;
+uniform mat4 bifrost_mvp;
 void main()
 {
-    gl_Position = mvp * vec4(position, 0.0, 1.0);
+    gl_Position = bifrost_mvp * vec4(position, 0.0, 1.0);
     texture_coords = position + vec2(0.5);
 }
 )";
@@ -59,10 +59,10 @@ R"(#version 450 core
 layout (location = 0) in vec2 position;
 layout (location = 1) in vec2 uv;
 out vec2 texture_coords;
-uniform mat4 mvp;
+uniform mat4 bifrost_mvp;
 void main()
 {
-    gl_Position = mvp * vec4(position, 0.0, 1.0);
+    gl_Position = bifrost_mvp * vec4(position, 0.0, 1.0);
     texture_coords = uv;
 }
 )";
@@ -74,11 +74,11 @@ layout (location = 1) in vec2 uv;
 layout (location = 2) in vec2 offset;
 layout (location = 3) in vec2 uv_offset;
 out vec2 texture_coords;
-uniform mat4 m;
-uniform mat4 vp;
+uniform mat4 bifrost_m;
+uniform mat4 bifrost_vp;
 void main()
 {
-    gl_Position = vp * (m * vec4(position, 0.0, 1.0) + vec4(offset, 0.0, 0.0));
+    gl_Position = bifrost_vp * (bifrost_m * vec4(position, 0.0, 1.0) + vec4(offset, 0.0, 0.0));
     texture_coords = uv + uv_offset;
 }
 )";
@@ -88,21 +88,21 @@ R"(#version 450 core
 layout (lines) in;
 layout (triangle_strip, max_vertices = 4) out;
 
-uniform float line_width;
-uniform vec2 screen_uv;
+uniform float bifrost_line_width;
+uniform vec2 bifrost_screen_uv;
 
 void main()
 {
-    float aspect_ratio = screen_uv.x / screen_uv.y;
+    float aspect_ratio = bifrost_screen_uv.x / bifrost_screen_uv.y;
 
     float x1 = gl_in[0].gl_Position.x * aspect_ratio;
     float y1 = gl_in[0].gl_Position.y;
     float x2 = gl_in[1].gl_Position.x * aspect_ratio;
     float y2 = gl_in[1].gl_Position.y;
 
-    vec2 n = normalize(vec2(y2 - y1, x1 - x2)) / screen_uv * line_width;
-    vec2 begin = normalize(vec2(x1 - x2, y1 - y2)) / screen_uv * line_width;
-    vec2 end = normalize(vec2(x2 - x1, y2 - y1)) / screen_uv * line_width;
+    vec2 n = normalize(vec2(y2 - y1, x1 - x2)) / bifrost_screen_uv * bifrost_line_width;
+    vec2 begin = normalize(vec2(x1 - x2, y1 - y2)) / bifrost_screen_uv * bifrost_line_width;
+    vec2 end = normalize(vec2(x2 - x1, y2 - y1)) / bifrost_screen_uv * bifrost_line_width;
 
     gl_Position = gl_in[0].gl_Position + vec4(n.x + begin.x, n.y + begin.y, 0.0, 0.0);
     EmitVertex();
@@ -122,22 +122,22 @@ void main()
 
     const char* basic_fs =
 R"(#version 450 core
-uniform vec4 color;
+uniform vec4 bifrost_color;
 out vec4 fragment_color;
 void main()
 {
-    fragment_color = color;
+    fragment_color = bifrost_color;
 })";
 
     const char* textured_fs =
 R"(#version 450 core
 in vec2 texture_coords;
-uniform vec4 color;
-uniform sampler2D tex;
+uniform vec4 bifrost_color;
+uniform sampler2D bifrost_tex;
 out vec4 fragment_color;
 void main()
 {
-    fragment_color = texture(tex, texture_coords) * vec4(color);
+    fragment_color = texture(bifrost_tex, texture_coords) * vec4(bifrost_color);
 })";
 
     bifrost::Texture debug_font_texture;
@@ -224,9 +224,9 @@ namespace bifrost
             glBindTexture(GL_TEXTURE_2D, texture.id);
             
             glUseProgram(instanced_uv_texture_shader.id);
-            glUniformMatrix4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "m"), 1, GL_FALSE, glm::value_ptr(model));
-            glUniformMatrix4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "vp"), 1, GL_FALSE, glm::value_ptr(camera.projection));
-            glUniform4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "color"), 1, glm::value_ptr(color));
+            glUniformMatrix4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "bifrost_m"), 1, GL_FALSE, glm::value_ptr(model));
+            glUniformMatrix4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "bifrost_vp"), 1, GL_FALSE, glm::value_ptr(camera.projection));
+            glUniform4fv(glGetUniformLocation(instanced_uv_texture_shader.id, "bifrost_color"), 1, glm::value_ptr(color));
             glDrawArraysInstanced(GL_TRIANGLES, 0, 6, (int)offsets.size());
             
             glBindVertexArray(0);
@@ -326,17 +326,15 @@ namespace bifrost
 
     Framebuffer GenFramebuffer(unsigned int width, unsigned int height, unsigned int texture_filter, unsigned int texture_wrap, unsigned int internal_format)
     {
-        Framebuffer buffer = {};
-
-        buffer.width = width;
-        buffer.height = height;
+        Framebuffer buffer{};
+        Texture texture{};
 
         glGenFramebuffers(1, &buffer.id);
         glBindFramebuffer(GL_FRAMEBUFFER, buffer.id);
 
-        glGenTextures(1, &buffer.texture_id);
+        glGenTextures(1, &texture.id);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, buffer.texture_id);
+        glBindTexture(GL_TEXTURE_2D, texture.id);
 
         glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
@@ -345,15 +343,19 @@ namespace bifrost
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texture_wrap);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texture_wrap);
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer.texture_id, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.id, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        buffer.width = texture.width = width;
+        buffer.height = texture.height = height;
+        buffer.texture = texture;
 
         return buffer;
     }
 
     Shader GenShader(const char* vertex_shader, const char* fragment_shader)
     {
-        Shader shader = {};
+        Shader shader{};
 
         unsigned int vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
         unsigned int fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
@@ -404,7 +406,7 @@ namespace bifrost
 
     Shader GenShaderFromSource(const char* vertex_shader, const char* fragment_shader)
     {
-        Shader shader = {};
+        Shader shader{};
 
         unsigned int vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
         unsigned int fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
@@ -435,7 +437,7 @@ namespace bifrost
 
     Shader GenShader(const char* vertex_shader, const char* geom_shader, const char* fragment_shader)
     {
-        Shader shader = {};
+        Shader shader{};
 
         unsigned int vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
         unsigned int geometry_shader_id = glCreateShader(GL_GEOMETRY_SHADER);
@@ -505,7 +507,7 @@ namespace bifrost
 
     Shader GenShaderFromSource(const char* vertex_shader, const char* geom_shader, const char* fragment_shader)
     {
-        Shader shader = {};
+        Shader shader{};
 
         unsigned int vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
         unsigned int geometry_shader_id = glCreateShader(GL_GEOMETRY_SHADER);
@@ -585,7 +587,7 @@ namespace bifrost
 
     Texture LoadTexture(const unsigned char* data, const int texture_width, const int texture_height)
     {
-        Texture texture = {};
+        Texture texture{};
 
         glGenTextures(1, &texture.id);
         glActiveTexture(GL_TEXTURE0);
@@ -604,7 +606,7 @@ namespace bifrost
 
     Texture LoadTexture(const char* filename)
     {
-        Texture texture = {};
+        Texture texture{};
 
         int texture_width, texture_height, texture_channel_count;
         stbi_set_flip_vertically_on_load(true);
@@ -627,7 +629,7 @@ namespace bifrost
 
     Texture LoadTexture(const unsigned char* png_data, const int png_size)
     {
-        Texture texture = {};
+        Texture texture{};
 
         int texture_width, texture_height, texture_channel_count;
         stbi_set_flip_vertically_on_load(true);
@@ -650,7 +652,7 @@ namespace bifrost
 
     Camera2d GenOrthogonalCamera2d(const glm::vec2 min, const glm::vec2 max)
     {
-        Camera2d camera = {};
+        Camera2d camera{};
 
         camera.projection = glm::ortho(min.x, max.x, min.y, max.y, -1.0f, 1.0f);
         camera.dimensions = glm::vec2(max.x - min.x, max.y - min.y);
@@ -667,7 +669,7 @@ namespace bifrost
     {
         int width, height;
         //glfwGetWindowSize(&window, &width, &height);
-	glfwGetFramebufferSize(&window, &width, &height);
+        glfwGetFramebufferSize(&window, &width, &height);
         return glm::ivec2{width, height};
     }
 
@@ -696,12 +698,30 @@ namespace bifrost
         glBindVertexArray(quad_vao);
         
         glUseProgram(basic_shader.id);
-        glUniformMatrix4fv(glGetUniformLocation(basic_shader.id, "mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection * model));
-        glUniform4fv(glGetUniformLocation(basic_shader.id, "color"), 1, glm::value_ptr(color));
+        glUniformMatrix4fv(glGetUniformLocation(basic_shader.id, "bifrost_mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection * model));
+        glUniform4fv(glGetUniformLocation(basic_shader.id, "bifrost_color"), 1, glm::value_ptr(color));
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
         glBindVertexArray(0);
     }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec4 color, Shader shader)
+    {
+        InitializeDrawing();
+        auto model = glm::translate(glm::mat4(1.0f), glm::vec3(origin.x, origin.y, 0.0f));
+        model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+        model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
+
+        glBindVertexArray(quad_vao);
+        
+        glUseProgram(shader.id);
+        glUniformMatrix4fv(glGetUniformLocation(shader.id, "bifrost_mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection * model));
+        glUniform4fv(glGetUniformLocation(shader.id, "bifrost_color"), 1, glm::value_ptr(color));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        
+        glBindVertexArray(0);
+    }
+
 
     void DrawLine(bifrost::Camera2d camera, glm::vec2 begin, glm::vec2 end, float width, glm::vec3 color)
     {
@@ -728,10 +748,10 @@ namespace bifrost
         glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
         glUseProgram(line_shader.id);
-        glUniformMatrix4fv(glGetUniformLocation(line_shader.id, "mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection));
-        glUniform4fv(glGetUniformLocation(line_shader.id, "color"), 1, glm::value_ptr(color));
-        glUniform1fv(glGetUniformLocation(line_shader.id, "line_width"), 1, &width);
-        glUniform2fv(glGetUniformLocation(line_shader.id, "screen_uv"), 1, glm::value_ptr(camera.dimensions));
+        glUniformMatrix4fv(glGetUniformLocation(line_shader.id, "bifrost_mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection));
+        glUniform4fv(glGetUniformLocation(line_shader.id, "bifrost_color"), 1, glm::value_ptr(color));
+        glUniform1fv(glGetUniformLocation(line_shader.id, "bifrost_line_width"), 1, &width);
+        glUniform2fv(glGetUniformLocation(line_shader.id, "bifrost_screen_uv"), 1, glm::value_ptr(camera.dimensions));
         glDrawArrays(GL_LINES, 0, 2);
 
         glBindVertexArray(0);
@@ -775,8 +795,8 @@ namespace bifrost
         glBindTexture(GL_TEXTURE_2D, texture.id);
         
         glUseProgram(texture_shader.id);
-        glUniformMatrix4fv(glGetUniformLocation(texture_shader.id, "mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection * model));
-        glUniform4fv(glGetUniformLocation(texture_shader.id, "color"), 1, glm::value_ptr(color));
+        glUniformMatrix4fv(glGetUniformLocation(texture_shader.id, "bifrost_mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection * model));
+        glUniform4fv(glGetUniformLocation(texture_shader.id, "bifrost_color"), 1, glm::value_ptr(color));
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
         glBindVertexArray(0);
@@ -836,8 +856,8 @@ namespace bifrost
         glBindTexture(GL_TEXTURE_2D, texture.id);
         
         glUseProgram(uv_texture_shader.id);
-        glUniformMatrix4fv(glGetUniformLocation(uv_texture_shader.id, "mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection * model));
-        glUniform4fv(glGetUniformLocation(uv_texture_shader.id, "color"), 1, glm::value_ptr(color));
+        glUniformMatrix4fv(glGetUniformLocation(uv_texture_shader.id, "bifrost_mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection * model));
+        glUniform4fv(glGetUniformLocation(uv_texture_shader.id, "bifrost_color"), 1, glm::value_ptr(color));
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
         glBindVertexArray(0);

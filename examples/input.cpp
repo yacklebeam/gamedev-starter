@@ -55,26 +55,29 @@ int main()
     const float speed = 200.0f;
     glm::vec2 pos = camera.dimensions / 2.0f;
 
-    float last_time = glfwGetTime();
+    double last_time = glfwGetTime();
 
     while (!glfwWindowShouldClose(window))
     {
-        float now = glfwGetTime();
-        float dt = now - last_time;
+        double now = glfwGetTime();
+        double dt = now - last_time;
         last_time = now;
 
         input.PollEvents(window);
 
         glm::vec2 move = input.GetAxis("left", "right", "down", "up");
-        pos += move * speed * dt;
+        pos += move * speed * (float)dt;
 
         glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         bifrost::DrawRectangle(camera, pos, glm::vec2(60.0f), glm::vec4(0.2f, 0.6f, 1.0f, 1.0f));
 
+        auto mouse_pos = input.MouseAt;
+
         bifrost::DrawDebugText(camera, glm::vec2(10.0f, camera.dimensions.y - 32.0f), 24.0f, "input example -- WASD to move");
         bifrost::DrawDebugText(camera, glm::vec2(10.0f, 10.0f), 24.0f, glm::vec3(0.8f, 0.8f, 0.8f), "pos: (%.0f, %.0f)", pos.x, pos.y);
+        bifrost::DrawDebugText(camera, glm::vec2(10.0f, camera.dimensions.y - 64.0f), 24.0f, glm::vec3(0.8f, 0.8f, 0.8f), "pos: (%.0f, %.0f)", mouse_pos.x, mouse_pos.y);
 
         glfwSwapBuffers(window);
     }

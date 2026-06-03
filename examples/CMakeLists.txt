@@ -43,6 +43,8 @@ function(add_example name)
 endfunction()
 
 add_example(basic)
+add_example(framebuffer)
+add_example(shader)
 add_example(input bifrost_input)
 add_example(dungeon bifrost_input bifrost_dungeon)
 add_example(collision bifrost_input bifrost_collision)

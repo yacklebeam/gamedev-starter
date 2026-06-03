@@ -64,18 +64,18 @@ int main()
     auto wall_hitbox    = bifrost::GenRectHitbox(wall_size);
 
     const float speed = 220.0f;
-    float last_time = glfwGetTime();
+    double last_time = glfwGetTime();
 
     while (!glfwWindowShouldClose(window))
     {
-        float now = glfwGetTime();
-        float dt  = now - last_time;
+        double now = glfwGetTime();
+        double dt  = now - last_time;
         last_time = now;
 
         input.PollEvents(window);
 
         glm::vec2 move = input.GetAxis("left", "right", "down", "up");
-        player_pos += move * speed * dt;
+        player_pos += move * speed * (float)dt;
 
         // Resolve overlap: push the player out by the penetration vector
         auto result = bifrost::GetCollision(player_hitbox, player_pos, 0.0f, wall_hitbox, wall_pos, 0.0f);

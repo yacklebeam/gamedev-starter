@@ -17,24 +17,24 @@ namespace bifrost
      * 
      * */
 
-    struct Framebuffer
-    {
-        unsigned int id;
-        unsigned int texture_id;
-        unsigned int width;
-        unsigned int height;
-    };
-
-    struct Shader
-    {
-        unsigned int id;
-    };
-
     struct Texture
     {
         unsigned int id;
         unsigned int width;
         unsigned int height;        
+    };
+
+    struct Framebuffer
+    {
+        unsigned int id;
+        unsigned int width;
+        unsigned int height;
+        Texture texture;
+    };
+
+    struct Shader
+    {
+        unsigned int id;
     };
 
     struct Camera2d
@@ -74,6 +74,9 @@ namespace bifrost
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, glm::vec3 color);
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, glm::vec4 color);
     
+    // With Shader
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec4 color, Shader shader);
+
     // Textured
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture);
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec3 color);
