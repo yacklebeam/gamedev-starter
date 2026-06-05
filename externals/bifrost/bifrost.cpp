@@ -336,7 +336,7 @@ namespace bifrost
             return origin + offset;
         }
 
-        void BlitToFramebuffer(bifrost::Texture texture, bifrost::Shader shader)
+        void BlitToFramebuffer(const bifrost::Texture& texture, const bifrost::Shader& shader)
         {
             InitializeDrawing();
             glDisable(GL_DEPTH_TEST);
@@ -350,6 +350,35 @@ namespace bifrost
             glBindVertexArray(0);
         }
     }
+
+    GLFWwindow* Initialize(unsigned int width, unsigned int height, const char* title)
+    {
+        if (!glfwInit())
+            return nullptr;
+
+        GLFWwindow* window = glfwCreateWindow(width, height, title, NULL, NULL);
+        if (!window)
+        {
+            glfwTerminate();
+            return nullptr;
+        }
+
+        glfwMakeContextCurrent(window);
+        gladLoadGL(glfwGetProcAddress);
+
+        InitializeDrawing();
+
+        return window;
+    }
+
+    void EnableDefaultRendererOptions()
+    {
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_SCALE_FRAMEBUFFER, GLFW_FALSE);
+    }
+
 
     Framebuffer GenFramebuffer(unsigned int width, unsigned int height, unsigned int texture_filter, unsigned int texture_wrap, unsigned int internal_format)
     {
@@ -379,6 +408,13 @@ namespace bifrost
 
         return buffer;
     }
+
+    void DrawToScreen(const Texture& texture)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        BlitToFramebuffer(texture, pipeline_blit_shader);
+    }
+
 
     Shader GenShader(const char* vertex_shader, const char* fragment_shader)
     {
@@ -692,11 +728,10 @@ namespace bifrost
         return GenOrthogonalCamera2d(glm::vec2(0.0f, 0.0f), glm::vec2((float)width, (float)height));
     }
 
-    glm::ivec2 GetScreenSize(GLFWwindow& window)
+    glm::ivec2 GetScreenSize(GLFWwindow* window)
     {
         int width, height;
-        //glfwGetWindowSize(&window, &width, &height);
-        glfwGetFramebufferSize(&window, &width, &height);
+        glfwGetFramebufferSize(window, &width, &height);
         return glm::ivec2{width, height};
     }
 
@@ -847,6 +882,7 @@ namespace bifrost
         glBindTexture(GL_TEXTURE_2D, texture.id);
         
         glUseProgram(texture_shader.id);
+        glUniform1i(glGetUniformLocation(texture_shader.id, "bifrost_tex"), 0);
         glUniformMatrix4fv(glGetUniformLocation(texture_shader.id, "bifrost_mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection * model));
         glUniform4fv(glGetUniformLocation(texture_shader.id, "bifrost_color"), 1, glm::value_ptr(color));
         glDrawArrays(GL_TRIANGLES, 0, 6);

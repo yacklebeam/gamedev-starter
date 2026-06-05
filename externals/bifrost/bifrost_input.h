@@ -34,6 +34,8 @@ namespace bifrost
 		void DisableBinds(const std::string& action);
 		void EnableBinds(const std::string& action);
 
+		void Activate(const std::string& action);
+
 		glm::vec2 MouseAt{};
 		glm::vec2 MousePressedAt{};
 		glm::vec2 MouseReleasedAt{};

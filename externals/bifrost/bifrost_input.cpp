@@ -207,4 +207,10 @@ namespace bifrost
 			else ++it;
 		}
 	}
+
+	void InputHandler::Activate(const std::string& action)
+	{
+		
+	}
+
 }

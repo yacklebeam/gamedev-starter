@@ -41,7 +41,7 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
-    auto screen_size = bifrost::GetScreenSize(*window);
+    auto screen_size = bifrost::GetScreenSize(window);
     glViewport(0, 0, screen_size.x, screen_size.y);
     camera = bifrost::GenUICamera(screen_size.x, screen_size.y);
 

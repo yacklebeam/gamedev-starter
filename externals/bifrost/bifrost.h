@@ -85,7 +85,11 @@ namespace bifrost
      *
      * */
 
+    GLFWwindow* Initialize(unsigned int width, unsigned int height, const char* title);
+    void EnableDefaultRendererOptions();
+
     Framebuffer GenFramebuffer(unsigned int width, unsigned int height, unsigned int texture_filter = GL_NEAREST, unsigned int texture_wrap = GL_CLAMP_TO_EDGE, unsigned int internal_format = GL_RGB);
+    void DrawToScreen(const Texture& texture);
 
     RenderPass GenRenderPass(unsigned int width, unsigned int height, FramebufferOptions opts = {});
     RenderPass GenRenderPass(unsigned int width, unsigned int height, Shader shader, FramebufferOptions opts = {});
@@ -103,7 +107,7 @@ namespace bifrost
     Texture LoadTexture(const unsigned char* png_data, const int png_size);
     Camera2d GenOrthogonalCamera2d(const glm::vec2 origin, const glm::vec2 dimensions);
     Camera2d GenUICamera(const int width, const int height);
-    glm::ivec2 GetScreenSize(GLFWwindow& window);
+    glm::ivec2 GetScreenSize(GLFWwindow* window);
 
     /*************
      * 
