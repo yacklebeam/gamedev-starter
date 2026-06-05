@@ -144,6 +144,18 @@ void main()
     float text_wrap_width = 0.0f;
 
     uint32_t seed = 0;
+
+    bifrost::Shader pipeline_blit_shader;
+
+    const char* pipeline_blit_vs =
+R"(#version 450 core
+layout (location = 0) in vec2 position;
+out vec2 texture_coords;
+void main()
+{
+    gl_Position = vec4(position * 2.0, 0.0, 1.0);
+    texture_coords = position + vec2(0.5);
+})";
 }
 
 namespace bifrost
@@ -175,6 +187,7 @@ namespace bifrost
             uv_texture_shader = bifrost::GenShaderFromSource(uv_vs, textured_fs);
             line_shader = bifrost::GenShaderFromSource(basic_vs, line_to_quad_gs, basic_fs);
             instanced_uv_texture_shader = bifrost::GenShaderFromSource(instanced_uv_vs, textured_fs);
+            pipeline_blit_shader = bifrost::GenShaderFromSource(pipeline_blit_vs, textured_fs);
 
             debug_font_texture = LoadTexture(debug_font_png, static_cast<int>(debug_font_png_len));
         }
@@ -321,6 +334,20 @@ namespace bifrost
                 uvs);
 
             return origin + offset;
+        }
+
+        void BlitToFramebuffer(bifrost::Texture texture, bifrost::Shader shader)
+        {
+            InitializeDrawing();
+            glDisable(GL_DEPTH_TEST);
+            glBindVertexArray(quad_vao);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture.id);
+            glUseProgram(shader.id);
+            glUniform1i(glGetUniformLocation(shader.id, "bifrost_tex"), 0);
+            glUniform4f(glGetUniformLocation(shader.id, "bifrost_color"), 1.0f, 1.0f, 1.0f, 1.0f);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glBindVertexArray(0);
         }
     }
 
@@ -713,12 +740,37 @@ namespace bifrost
         model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
 
         glBindVertexArray(quad_vao);
-        
+
         glUseProgram(shader.id);
         glUniformMatrix4fv(glGetUniformLocation(shader.id, "bifrost_mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection * model));
         glUniform4fv(glGetUniformLocation(shader.id, "bifrost_color"), 1, glm::value_ptr(color));
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        
+
+        glBindVertexArray(0);
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, Shader shader)
+    {
+        DrawRectangle(camera, origin, size, texture, glm::vec4(1.0f), shader);
+    }
+
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec4 color, Shader shader)
+    {
+        InitializeDrawing();
+        auto model = glm::translate(glm::mat4(1.0f), glm::vec3(origin.x, origin.y, 0.0f));
+        model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
+
+        glDisable(GL_DEPTH_TEST);
+        glBindVertexArray(quad_vao);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture.id);
+
+        glUseProgram(shader.id);
+        glUniform1i(glGetUniformLocation(shader.id, "bifrost_tex"), 0);
+        glUniformMatrix4fv(glGetUniformLocation(shader.id, "bifrost_mvp"), 1, GL_FALSE, glm::value_ptr(camera.projection * model));
+        glUniform4fv(glGetUniformLocation(shader.id, "bifrost_color"), 1, glm::value_ptr(color));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
         glBindVertexArray(0);
     }
 
@@ -1038,4 +1090,57 @@ namespace bifrost
             v = max;
         return v;
     }
+
+    Texture RenderPass::Run(Texture input)
+    {
+        GLint prev_viewport[4];
+        glGetIntegerv(GL_VIEWPORT, prev_viewport);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.id);
+        glViewport(0, 0, framebuffer.width, framebuffer.height);
+        glClear(GL_COLOR_BUFFER_BIT);
+        BlitToFramebuffer(input, shader);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
+        return framebuffer.texture;
+    }
+
+    RenderPass GenRenderPass(unsigned int width, unsigned int height, FramebufferOptions opts)
+    {
+        RenderPass pass;
+        pass.framebuffer = GenFramebuffer(width, height, opts.filter, opts.wrap, opts.internal_format);
+        pass.shader = pipeline_blit_shader;
+        return pass;
+    }
+
+    RenderPass GenRenderPass(unsigned int width, unsigned int height, Shader shader, FramebufferOptions opts)
+    {
+        RenderPass pass;
+        pass.framebuffer = GenFramebuffer(width, height, opts.filter, opts.wrap, opts.internal_format);
+        pass.shader = shader;
+        return pass;
+    }
+
+    RenderPass GenRenderPass(unsigned int width, unsigned int height, const char* vert_file, const char* frag_file, FramebufferOptions opts)
+    {
+        RenderPass pass;
+        pass.framebuffer = GenFramebuffer(width, height, opts.filter, opts.wrap, opts.internal_format);
+        pass.shader = GenShader(vert_file, frag_file);
+        return pass;
+    }
+
+    RenderPass GenRenderPass(unsigned int width, unsigned int height, const char* frag_file, FramebufferOptions opts)
+    {
+        std::ifstream frag_stream(frag_file);
+        std::stringstream frag_buf;
+        frag_buf << frag_stream.rdbuf();
+        std::string frag_src = frag_buf.str();
+
+        RenderPass pass;
+        pass.framebuffer = GenFramebuffer(width, height, opts.filter, opts.wrap, opts.internal_format);
+        pass.shader = GenShaderFromSource(pipeline_blit_vs, frag_src.c_str());
+        return pass;
+    }
+
 }

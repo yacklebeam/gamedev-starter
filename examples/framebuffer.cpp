@@ -43,7 +43,9 @@ int main()
     glViewport(0, 0, screen_size.x, screen_size.y);
     camera = bifrost::GenUICamera(screen_size.x, screen_size.y);
 
-    auto fb = bifrost::GenFramebuffer(screen_size.x, screen_size.y);
+    auto framebuffer = bifrost::GenFramebuffer(screen_size.x, screen_size.y);
+
+    auto clear_color = glm::vec4(0.1f, 0.1f, 0.15f, 1.0f);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -53,27 +55,29 @@ int main()
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, GLFW_TRUE);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, fb.id);
-        glViewport(0, 0, fb.width, fb.height);
-        glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
-
-        // Draw a square in the center of the screen
         glm::vec2 center = camera.dimensions * 0.5f;
-        bifrost::DrawRectangle(camera, center, glm::vec2(150.0f, 150.0f), 15.0f, glm::vec3(1.0f, 1.0f, 1.0f));
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, screen_size.x, screen_size.y);
+        {
+            BIFROST_ACTIVATE_FRAMEBUFFER(framebuffer);
+
+            glEnable(GL_DEPTH_TEST);
+            glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            bifrost::DrawRectangle(camera, center, glm::vec2(150.0f, 150.0f), 15.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+        }
+
+        auto scene = framebuffer.texture;
+
+        // Draw the captured texture to screen with colour tints.
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        bifrost::DrawRectangle(camera, center + glm::vec2(center.x * -0.5f, center.y *  0.5f), glm::vec2((float)screen_size.x, (float)screen_size.y) * 0.5f, fb.texture, glm::vec3(1.0f, 0.0f, 0.0f));
-        bifrost::DrawRectangle(camera, center + glm::vec2(center.x *  0.5f, center.y *  0.5f), glm::vec2((float)screen_size.x, (float)screen_size.y) * 0.5f, fb.texture, glm::vec3(0.0f, 1.0f, 0.0f));
-        bifrost::DrawRectangle(camera, center + glm::vec2(center.x * -0.5f, center.y * -0.5f), glm::vec2((float)screen_size.x, (float)screen_size.y) * 0.5f, fb.texture, glm::vec3(0.0f, 0.0f, 1.0f));
-        bifrost::DrawRectangle(camera, center + glm::vec2(center.x *  0.5f, center.y * -0.5f), glm::vec2((float)screen_size.x, (float)screen_size.y) * 0.5f, fb.texture);
+        auto half = glm::vec2(screen_size) * 0.5f;
+        bifrost::DrawRectangle(camera, center + glm::vec2(-center.x * 0.5f,  center.y * 0.5f), half, scene, glm::vec3(1.0f, 0.0f, 0.0f));
+        bifrost::DrawRectangle(camera, center + glm::vec2( center.x * 0.5f,  center.y * 0.5f), half, scene, glm::vec3(0.0f, 1.0f, 0.0f));
+        bifrost::DrawRectangle(camera, center + glm::vec2(-center.x * 0.5f, -center.y * 0.5f), half, scene, glm::vec3(0.0f, 0.0f, 1.0f));
+        bifrost::DrawRectangle(camera, center + glm::vec2( center.x * 0.5f, -center.y * 0.5f), half, scene);
 
-        // Draw some debug text
         bifrost::DrawDebugText(camera, glm::vec2(10.0f, camera.dimensions.y - 32.0f), 24.0f, "framebuffer example");
         bifrost::DrawDebugText(camera, glm::vec2(10.0f, 10.0f), 24.0f, glm::vec3(0.8f, 0.8f, 0.8f), "press ESC to quit");
 

@@ -40,11 +40,17 @@ function(add_example name)
     IF (WIN32)
         target_link_libraries(${name} PUBLIC opengl32 gdi32 shell32)
     ENDIF()
+    add_custom_command(TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets
+            $<TARGET_FILE_DIR:${name}>/assets
+    )
 endfunction()
 
 add_example(basic)
 add_example(framebuffer)
 add_example(shader)
+add_example(postprocessing bifrost_input)
 add_example(input bifrost_input)
 add_example(dungeon bifrost_input bifrost_dungeon)
 add_example(collision bifrost_input bifrost_collision)

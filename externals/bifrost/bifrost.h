@@ -9,6 +9,8 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#define BIFROST_ACTIVATE_FRAMEBUFFER(framebuffer) bifrost::ScopeActivatedFrameBuffer _scoped_fb_{framebuffer}
+
 namespace bifrost
 {
     /*************
@@ -43,13 +45,53 @@ namespace bifrost
         glm::vec2 dimensions;
     };
 
+    struct FramebufferOptions
+    {
+        unsigned int filter          = GL_NEAREST;
+        unsigned int wrap            = GL_CLAMP_TO_EDGE;
+        unsigned int internal_format = GL_RGB;
+    };
+
+    struct RenderPass
+    {
+        Framebuffer framebuffer;
+        Shader shader;
+
+        Texture Run(Texture input);
+    };
+
+    class ScopeActivatedFrameBuffer
+    {
+    public:
+        ScopeActivatedFrameBuffer(const Framebuffer& framebuffer)
+        {
+            glGetIntegerv(GL_VIEWPORT, _prev_viewport);
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.id);
+            glViewport(0, 0, framebuffer.width, framebuffer.height);
+        }
+
+        ~ScopeActivatedFrameBuffer()
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glViewport(_prev_viewport[0], _prev_viewport[1], _prev_viewport[2], _prev_viewport[3]);
+        }
+    private:
+        GLint _prev_viewport[4] = {};
+    };
+
     /*************
-     * 
+     *
      *  BIFROST CORE
-     * 
+     *
      * */
 
     Framebuffer GenFramebuffer(unsigned int width, unsigned int height, unsigned int texture_filter = GL_NEAREST, unsigned int texture_wrap = GL_CLAMP_TO_EDGE, unsigned int internal_format = GL_RGB);
+
+    RenderPass GenRenderPass(unsigned int width, unsigned int height, FramebufferOptions opts = {});
+    RenderPass GenRenderPass(unsigned int width, unsigned int height, Shader shader, FramebufferOptions opts = {});
+    RenderPass GenRenderPass(unsigned int width, unsigned int height, const char* vert_file, const char* frag_file, FramebufferOptions opts = {});
+    RenderPass GenRenderPass(unsigned int width, unsigned int height, const char* frag_file, FramebufferOptions opts = {});
+
     Shader GenShader(const char* vert_shader_file, const char* frag_shader_file);
     Shader GenShaderFromSource(const char* vert_shader_code, const char* frag_shader_code);
     Shader GenShader(const char* vert_shader_file, const char* geom_shader_file, const char* frag_shader_file);
@@ -74,8 +116,12 @@ namespace bifrost
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, glm::vec3 color);
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, float angle, glm::vec4 color);
     
-    // With Shader
+    // With Shader (solid color)
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, glm::vec4 color, Shader shader);
+
+    // With Shader (textured)
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, Shader shader);
+    void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture, glm::vec4 color, Shader shader);
 
     // Textured
     void DrawRectangle(bifrost::Camera2d camera, glm::vec2 origin, glm::vec2 size, bifrost::Texture texture);
