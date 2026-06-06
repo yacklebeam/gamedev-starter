@@ -1,6 +1,6 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
-
+#include <glm/glm.hpp>
 #include <bifrost/bifrost.h>
 
 #if _WIN32
@@ -25,11 +25,13 @@ int main()
 
     while(!glfwWindowShouldClose(window))
     {
-        // Draw game
-    	glClearColor(0.45f, 0.55f, 0.6f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        glfwPollEvents();
 
-        bifrost::DrawDebugText(camera, glm::vec2{10.0f, camera.dimensions.y - 12.0f}, 12.0f, vec3(1.0f), "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n1234567890-=!#%^*()_+[]{};':,.<>/?\\|~");
+        // Draw game
+    	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        bifrost::DrawDebugText(camera, camera.dimensions * 0.5f, 24.0f, glm::vec3(1.0f), "HELLO!");
 
         glfwSwapBuffers(window);
     }
